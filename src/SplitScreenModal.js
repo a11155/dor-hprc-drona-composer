@@ -104,18 +104,28 @@ const MinimizedModal = ({ onExpand, styles }) => {
 const SplitScreenModal = ({
   isOpen,
   onClose,
-  warningMessages,
+  messages,
   multiPaneRef,
   panes,
   setPanes,
   outputLines,
   htmlOutput,
   status,
-  onSubmit
+  onSubmit,
+  onMinimize: onMinimizeCallback,
+  onExpand: onExpandCallback,
+  forceMinimized = null
 }) => {
   const contentRef = useRef(null);
   const modalRef = useRef(null);
   const [isMinimized, setIsMinimized] = React.useState(false);
+  
+  // Sync internal state with parent control
+  useEffect(() => {
+    if (forceMinimized !== null) {
+      setIsMinimized(forceMinimized);
+    }
+  }, [forceMinimized]);
   
   const { leftWidth, isResizing, handleMouseDown } = useResizeHandle(55);
   const { sortedPanes, activePane, setActivePane } = usePaneManagement(panes);
@@ -129,10 +139,16 @@ const SplitScreenModal = ({
 
   const handleMinimize = () => {
     setIsMinimized(true);
+    if (onMinimizeCallback) {
+      onMinimizeCallback();
+    }
   };
 
   const handleExpand = () => {
     setIsMinimized(false);
+    if (onExpandCallback) {
+      onExpandCallback();
+    }
   };
 
   if (!isOpen) return null;
@@ -142,7 +158,7 @@ const SplitScreenModal = ({
   }
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
+    <div style={styles.overlay} onClick={handleMinimize}>
       <div 
         style={styles.modal} 
         onClick={(e) => e.stopPropagation()} 
@@ -157,7 +173,7 @@ const SplitScreenModal = ({
             sortedPanes={sortedPanes}
             activePane={activePane}
             setActivePane={setActivePane}
-            warningMessages={warningMessages}
+            messages={messages}
             multiPaneRef={multiPaneRef}
             panes={panes}
             setPanes={setPanes}
