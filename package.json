@@ -4,7 +4,7 @@
   "description": "Tool to create and submit batch jobs",
   "main": "webpack.config.js",
   "dependencies": {
-    "@anthropic-ai/claude-code": "^1.0.5",
+    "@anthropic-ai/claude-code": "^1.0.51",
     "@codemirror/lang-json": "^6.0.1",
     "@codemirror/lang-markdown": "^6.3.2",
     "@codemirror/lang-python": "^6.1.7",
@@ -30,7 +30,7 @@
     "yaml-loader": "^0.8.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.27.1",
+    "@babel/core": "^7.28.3",
     "@babel/preset-env": "^7.26.0",
     "@babel/preset-react": "^7.27.1",
     "@testing-library/jest-dom": "^6.6.3",
@@ -54,8 +54,8 @@
   },
   "scripts": {
     "demo": "node scripts/generate-demo-env.js",
-	"docs": "npx jsdoc src/** -d docs -c jsdoc.conf.json",
-    "docs:serve": "cd docs && python3 -m http.server 8080 2>/dev/null || python -m http.server 8080",
+    "docs": "npx jsdoc src/** -d docs -c jsdoc.conf.json",
+    "docs:serve": "cd docs && python3 -m http.server 8082 2>/dev/null || python3 -m http.server 8082",
     "docs:deploy": "npm run docs",
     "build": "webpack --config webpack.config.js --mode=development",
     "build:prod": "webpack --config webpack.config.js --mode=production",
