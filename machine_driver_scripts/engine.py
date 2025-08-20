@@ -4,10 +4,34 @@ import argparse
 import ast
 import shutil
 import os
+import sys
 from machine_driver_scripts.utils import *
 import importlib.util
 
+def load_module_with_imports(module_name, file_path):
+    if not os.path.exists(file_path):
+        return None
+    module_dir = os.path.dirname(file_path)
+
+    sys.path.insert(0, module_dir)
+    module = None
+
+    try:
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        if spec and spec.loader:
+            module = importlib.util.module_from_spec(spec)
+            # Add the module to sys.modules before execution. This is crucial
+            # for relative imports (e.g., from . import other_file) to work.
+            sys.modules[module_name] = module
+            spec.loader.exec_module(module)
+    finally:
+        if sys.path[0] == module_dir:
+            sys.path.pop(0)
+
+    return module
+
 def process_function(value, environment, env_dir):
+
     def find_function_calls(text):
         calls = []
         i = 0
@@ -66,23 +90,25 @@ def process_function(value, environment, env_dir):
                     i += 1
             else:
                 i += 1
-        return calls 
-    # Load modules
+        return calls
+        
+    # Load modules using the new helper function
     global_utils_path = os.path.join("machine_driver_scripts", "utils.py")
-    spec = importlib.util.spec_from_file_location("global_utils", global_utils_path)
-    global_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(global_module)
-    
-    local_function_path = os.path.join(env_dir, environment, "utils.py")
+    global_module = load_module_with_imports("global_utils", global_utils_path)
+
     local_module = None
+    local_function_path = os.path.join(env_dir, environment, "utils.py")
     if os.path.exists(local_function_path):
-        spec = importlib.util.spec_from_file_location("utils", local_function_path)
-        local_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(local_module)
-        for func_name in dir(global_module):
-            if callable(getattr(global_module, func_name)):
-                setattr(local_module, func_name, getattr(global_module, func_name))
-    
+        # Create a unique module name to avoid conflicts between environments
+        local_module_name = f"local_utils_{environment}"
+        local_module = load_module_with_imports(local_module_name, local_function_path)
+        
+        # Make global functions available to the local module
+        if global_module and local_module:
+            for func_name in dir(global_module):
+                if callable(getattr(global_module, func_name)):
+                    setattr(local_module, func_name, getattr(global_module, func_name))
+
     # Process function calls (in reverse order to maintain string positions)
     calls = find_function_calls(value)
     for start, end, function_name, params_str in reversed(calls):
@@ -90,11 +116,9 @@ def process_function(value, environment, env_dir):
         def parse_parameters(params_str):
             if not params_str.strip():
                 return []
-            
             params = []
             current_param = ""
             i = 0
-            
             while i < len(params_str):
                 if params_str[i] == ',':
                     params.append(current_param.strip())
@@ -111,24 +135,20 @@ def process_function(value, environment, env_dir):
                         current_param += params_str[i]  # Add closing quote
                 elif params_str[i:i+5] == '<var>':
                     # Copy var tag as-is
-                    start = i
+                    start_tag = i
                     i += 5
                     while i < len(params_str) - 5 and params_str[i:i+6] != '</var>':
                         i += 1
                     i += 6  # Include closing tag
-                    current_param += params_str[start:i]
+                    current_param += params_str[start_tag:i]
                     continue  # Skip the i += 1 at the end
                 else:
                     current_param += params_str[i]
                 i += 1
-            
             if current_param.strip():
                 params.append(current_param.strip())
-            
             return params
-        
         variables = parse_parameters(params_str) if params_str else []
-        
         # Remove quotes from string parameters and unwrap tagged variables
         processed_variables = []
         for var in variables:
@@ -141,27 +161,28 @@ def process_function(value, environment, env_dir):
                 var = var[5:-6]
             processed_variables.append(var)
         
-        # Get the function
-        if local_module and function_name in dir(local_module) and callable(getattr(local_module, function_name)):
+        # Get the function, prioritizing the local module
+        dynamic_function = None
+        if local_module and hasattr(local_module, function_name) and callable(getattr(local_module, function_name)):
             dynamic_function = getattr(local_module, function_name)
-        elif function_name in dir(global_module) and callable(getattr(global_module, function_name)):
+        elif global_module and hasattr(global_module, function_name) and callable(getattr(global_module, function_name)):
             dynamic_function = getattr(global_module, function_name)
         else:
-            return f"Function {function_name} not found in local or global utils.py."
-        
+            return f"Function {function_name} not found in local or global utils."
+
         # Execute the function
         try:
             result = dynamic_function(*processed_variables)
         except Exception as e:
             result = f"Error: {e}"
-        
         if result is None:
             result = ""
-        
         # Replace the function call with the result
         value = value[:start] + str(result) + value[end:]
-    
+
     return value
+
+
 
 def replace_flag(match, params):
     flag = match.group(1)
