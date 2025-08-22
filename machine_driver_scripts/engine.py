@@ -13,7 +13,17 @@ def load_module_with_imports(module_name, file_path):
         return None
     module_dir = os.path.dirname(file_path)
 
+    # Add both module directory and packages directory to Python path
+    packages_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'packages')
+    paths_added = []
+    
     sys.path.insert(0, module_dir)
+    paths_added.append(module_dir)
+    
+    if os.path.exists(packages_dir) and packages_dir not in sys.path:
+        sys.path.insert(0, packages_dir)
+        paths_added.append(packages_dir)
+    
     module = None
 
     try:
@@ -25,8 +35,10 @@ def load_module_with_imports(module_name, file_path):
             sys.modules[module_name] = module
             spec.loader.exec_module(module)
     finally:
-        if sys.path[0] == module_dir:
-            sys.path.pop(0)
+        # Remove added paths in reverse order
+        for path in reversed(paths_added):
+            if path in sys.path:
+                sys.path.remove(path)
 
     return module
 
@@ -93,92 +105,99 @@ def process_function(value, environment, env_dir):
         return calls
         
     # Load modules using the new helper function
-    global_utils_path = os.path.join("machine_driver_scripts", "utils.py")
-    global_module = load_module_with_imports("global_utils", global_utils_path)
+    try:
+        global_utils_path = os.path.join("machine_driver_scripts", "utils.py")
+        global_module = load_module_with_imports("global_utils", global_utils_path)
 
-    local_module = None
-    local_function_path = os.path.join(env_dir, environment, "utils.py")
-    if os.path.exists(local_function_path):
-        # Create a unique module name to avoid conflicts between environments
-        local_module_name = f"local_utils_{environment}"
-        local_module = load_module_with_imports(local_module_name, local_function_path)
-        
-        # Make global functions available to the local module
-        if global_module and local_module:
-            for func_name in dir(global_module):
-                if callable(getattr(global_module, func_name)):
-                    setattr(local_module, func_name, getattr(global_module, func_name))
+        local_module = None
+        local_function_path = os.path.join(env_dir, environment, "utils.py")
+        if os.path.exists(local_function_path):
+            # Create a unique module name to avoid conflicts between environments
+            local_module_name = f"local_utils_{environment}"
+            local_module = load_module_with_imports(local_module_name, local_function_path)
+            
+            # Make global functions available to the local module
+            if global_module and local_module:
+                for func_name in dir(global_module):
+                    if callable(getattr(global_module, func_name)):
+                        setattr(local_module, func_name, getattr(global_module, func_name))
 
-    # Process function calls (in reverse order to maintain string positions)
-    calls = find_function_calls(value)
-    for start, end, function_name, params_str in reversed(calls):
-        # Parse parameters, handling quoted strings and tagged variables
-        def parse_parameters(params_str):
-            if not params_str.strip():
-                return []
-            params = []
-            current_param = ""
-            i = 0
-            while i < len(params_str):
-                if params_str[i] == ',':
-                    params.append(current_param.strip())
-                    current_param = ""
-                elif params_str[i] in ['"', "'"]:
-                    # Copy quoted string as-is
-                    quote = params_str[i]
-                    current_param += quote
-                    i += 1
-                    while i < len(params_str) and params_str[i] != quote:
+        # Process function calls (in reverse order to maintain string positions)
+        calls = find_function_calls(value)
+        for start, end, function_name, params_str in reversed(calls):
+            # Parse parameters, handling quoted strings and tagged variables
+            def parse_parameters(params_str):
+                if not params_str.strip():
+                    return []
+                params = []
+                current_param = ""
+                i = 0
+                while i < len(params_str):
+                    if params_str[i] == ',':
+                        params.append(current_param.strip())
+                        current_param = ""
+                    elif params_str[i] in ['"', "'"]:
+                        # Copy quoted string as-is
+                        quote = params_str[i]
+                        current_param += quote
+                        i += 1
+                        while i < len(params_str) and params_str[i] != quote:
+                            current_param += params_str[i]
+                            i += 1
+                        if i < len(params_str):
+                            current_param += params_str[i]  # Add closing quote
+                    elif params_str[i:i+5] == '<var>':
+                        # Copy var tag as-is
+                        start_tag = i
+                        i += 5
+                        while i < len(params_str) - 5 and params_str[i:i+6] != '</var>':
+                            i += 1
+                        i += 6  # Include closing tag
+                        current_param += params_str[start_tag:i]
+                        continue  # Skip the i += 1 at the end
+                    else:
                         current_param += params_str[i]
-                        i += 1
-                    if i < len(params_str):
-                        current_param += params_str[i]  # Add closing quote
-                elif params_str[i:i+5] == '<var>':
-                    # Copy var tag as-is
-                    start_tag = i
-                    i += 5
-                    while i < len(params_str) - 5 and params_str[i:i+6] != '</var>':
-                        i += 1
-                    i += 6  # Include closing tag
-                    current_param += params_str[start_tag:i]
-                    continue  # Skip the i += 1 at the end
-                else:
-                    current_param += params_str[i]
-                i += 1
-            if current_param.strip():
-                params.append(current_param.strip())
-            return params
-        variables = parse_parameters(params_str) if params_str else []
-        # Remove quotes from string parameters and unwrap tagged variables
-        processed_variables = []
-        for var in variables:
-            var = var.strip()
-            # Remove outer quotes if present
-            if (var.startswith('"') and var.endswith('"')) or (var.startswith("'") and var.endswith("'")):
-                var = var[1:-1]
-            # Remove variable tags
-            if var.startswith('<var>') and var.endswith('</var>'):
-                var = var[5:-6]
-            processed_variables.append(var)
-        
-        # Get the function, prioritizing the local module
-        dynamic_function = None
-        if local_module and hasattr(local_module, function_name) and callable(getattr(local_module, function_name)):
-            dynamic_function = getattr(local_module, function_name)
-        elif global_module and hasattr(global_module, function_name) and callable(getattr(global_module, function_name)):
-            dynamic_function = getattr(global_module, function_name)
-        else:
-            return f"Function {function_name} not found in local or global utils."
+                    i += 1
+                if current_param.strip():
+                    params.append(current_param.strip())
+                return params
+            variables = parse_parameters(params_str) if params_str else []
+            # Remove quotes from string parameters and unwrap tagged variables
+            processed_variables = []
+            for var in variables:
+                var = var.strip()
+                # Remove outer quotes if present
+                if (var.startswith('"') and var.endswith('"')) or (var.startswith("'") and var.endswith("'")):
+                    var = var[1:-1]
+                # Remove variable tags
+                if var.startswith('<var>') and var.endswith('</var>'):
+                    var = var[5:-6]
+                processed_variables.append(var)
+            
+            # Get the function, prioritizing the local module
+            dynamic_function = None
+            if local_module and hasattr(local_module, function_name) and callable(getattr(local_module, function_name)):
+                dynamic_function = getattr(local_module, function_name)
+            elif global_module and hasattr(global_module, function_name) and callable(getattr(global_module, function_name)):
+                dynamic_function = getattr(global_module, function_name)
+            else:
+                return f"Function {function_name} not found in local or global utils."
 
-        # Execute the function
-        try:
-            result = dynamic_function(*processed_variables)
-        except Exception as e:
-            result = f"Error: {e}"
-        if result is None:
-            result = ""
-        # Replace the function call with the result
-        value = value[:start] + str(result) + value[end:]
+            # Execute the function
+            try:
+                result = dynamic_function(*processed_variables)
+            except Exception as e:
+                result = f"Error: {e}"
+            if result is None:
+                result = ""
+            print(result)
+            # Replace the function call with the result
+            value = value[:start] + str(result) + value[end:]
+    except Exception as e:
+       print("----------------------\nError:", e)
+       return "[Error]"
+
+            
 
     return value
 
