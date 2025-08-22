@@ -29,6 +29,9 @@ def load_module_with_imports(module_name, file_path):
     try:
         spec = importlib.util.spec_from_file_location(module_name, file_path)
         if spec and spec.loader:
+            # Remove any existing module to avoid caching issues
+            if module_name in sys.modules:
+                del sys.modules[module_name]
             module = importlib.util.module_from_spec(spec)
             # Add the module to sys.modules before execution. This is crucial
             # for relative imports (e.g., from . import other_file) to work.
