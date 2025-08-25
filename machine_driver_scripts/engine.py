@@ -12,11 +12,11 @@ def load_module_with_imports(module_name, file_path):
     if not os.path.exists(file_path):
         return None
     module_dir = os.path.dirname(file_path)
-
-    # Add both module directory and packages directory to Python path
     packages_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'packages')
-    paths_added = []
     
+    utils_scripts_dir = os.path.join(module_dir, 'utils_scripts')
+    
+    paths_added = []
     sys.path.insert(0, module_dir)
     paths_added.append(module_dir)
     
@@ -24,26 +24,53 @@ def load_module_with_imports(module_name, file_path):
         sys.path.insert(0, packages_dir)
         paths_added.append(packages_dir)
     
+    # Add utils_scripts if it exists
+    if os.path.exists(utils_scripts_dir) and utils_scripts_dir not in sys.path:
+        sys.path.insert(0, utils_scripts_dir)
+        paths_added.append(utils_scripts_dir)
+    
     module = None
-
     try:
         spec = importlib.util.spec_from_file_location(module_name, file_path)
         if spec and spec.loader:
             # Remove any existing module to avoid caching issues
             if module_name in sys.modules:
                 del sys.modules[module_name]
+
+            # Also clear any imported submodules that might be cached
+            modules_to_clear = [name for name in sys.modules.keys() if name.startswith(f"{module_name}.")]
+            for mod_name in modules_to_clear:
+                del sys.modules[mod_name]
+
+            # Clear environment-specific utils_scripts modules
+            if 'utils_scripts' in sys.modules:
+                del sys.modules['utils_scripts']
+
+            utils_scripts_modules = [name for name in sys.modules.keys() if 'utils_scripts' in name]
+            for mod_name in utils_scripts_modules:
+                del sys.modules[mod_name]
+                
             module = importlib.util.module_from_spec(spec)
+
             # Add the module to sys.modules before execution. This is crucial
             # for relative imports (e.g., from . import other_file) to work.
             sys.modules[module_name] = module
             spec.loader.exec_module(module)
-    finally:
-        # Remove added paths in reverse order
-        for path in reversed(paths_added):
-            if path in sys.path:
-                sys.path.remove(path)
+    except Exception as e:
+        print("Import error:", e)
+    
 
     return module
+
+def cleanup_added_paths(env_dir, environment):
+    module_dir = os.path.join(env_dir, environment)
+    packages_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'packages')
+    utils_scripts_dir = os.path.join(module_dir, 'utils_scripts')
+    
+    paths_to_remove = [module_dir, packages_dir, utils_scripts_dir]
+    for path in paths_to_remove:
+        while path in sys.path:
+            sys.path.remove(path)
 
 def process_function(value, environment, env_dir):
 
@@ -196,9 +223,12 @@ def process_function(value, environment, env_dir):
             print(result)
             # Replace the function call with the result
             value = value[:start] + str(result) + value[end:]
+        cleanup_added_paths(env_dir, environment)
     except Exception as e:
        print("----------------------\nError:", e)
+       cleanup_added_paths(env_dir, environment)
        return "[Error]"
+
 
             
 
