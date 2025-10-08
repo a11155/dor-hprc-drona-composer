@@ -74,10 +74,12 @@ function StaticText(props) {
 
   // Update form context whenever content changes (for conditional logic)
   useEffect(() => {
-    if (updateValue && props.name) {
+    const currentContextValue = getFieldValue(formValues, props.name); 
+	
+    if (updateValue && props.name && currentContextValue != content) {
       updateValue(props.name, content);
     }
-  }, [content, updateValue, props.name]);
+  }, [content, updateValue, props.name, formValues]);
 
   const relevantFieldNames = useMemo(() => {
     if (!props.retrieverParams) return [];
