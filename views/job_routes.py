@@ -29,8 +29,17 @@ def extract_job_id(submit_response):
 )
 def submit_job_route():
     """HTTP endpoint for job submission"""
-    params = request.form
     files = request.files
+    
+    job_id = str(int(uuid.uuid4().int & 0xFFFFFFFFF))
+    
+    params = dict(request.form)
+    if not params.get('name') or params.get('name').strip() == '':
+        params['name'] = 'unnamed'
+    
+    if not params.get('location') or params.get('location').strip() == '':
+        user = os.getenv('USER')
+        params['location'] = f"/scratch/user/{user}/drona_composer/runs"
     
     create_folder_if_not_exist(params.get('location'))
     
@@ -47,25 +56,40 @@ def submit_job_route():
 
     history_manager = JobHistoryManager()
 
-    history_manager.save_job(
+    job_record = history_manager.save_job(
         params,
         files,
         {
             "bash_script":   bash_script_path,
             "driver_script": driver_script_path
-        }
+        },
+        job_id=job_id
     )
 
-
-    return jsonify({
-        'bash_cmd': bash_cmd,
-    })
+    # Handle case where save_job returns False on error
+    if isinstance(job_record, dict) and 'job_id' in job_record:
+        return jsonify({
+            'bash_cmd': bash_cmd,
+            'drona_job_id': job_record['job_id']
+        })
+    else:
+        # If save_job failed, still return bash_cmd but without drona_job_id
+        return jsonify({
+            'bash_cmd': bash_cmd
+        })
 
 def preview_job_route():
     """Preview a job script without submitting it"""
-    params = request.form
+    params = dict(request.form)
+    
+    if not params.get('name') or params.get('name').strip() == '':
+        params['name'] = 'unnamed'
+    
+    if not params.get('location') or params.get('location').strip() == '':
+        user = os.getenv('USER')
+        params['location'] = f"/scratch/user/{user}/drona_composer/runs"
+    
     engine = Engine()
-
     engine.set_environment(params.get('runtime'), params.get('env_dir'))
     preview_job = engine.preview_script(params)
 

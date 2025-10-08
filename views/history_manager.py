@@ -4,6 +4,7 @@ import uuid
 import json
 from datetime import datetime
 from pathlib import Path
+from .utils import get_drona_dir
 
 class JobHistoryManager:
     def __init__(self):
@@ -11,7 +12,7 @@ class JobHistoryManager:
 
     def get_job(self, job_id):
         user = os.getenv('USER')
-        base_dir = os.path.join('/scratch/user', user, 'drona_composer', 'jobs')
+        base_dir = os.path.join(get_drona_dir(), 'jobs')
         try:
             Path(base_dir).mkdir(parents=True, exist_ok=True)
             history_file = os.path.join(base_dir, f"{user}_history.json")
@@ -71,10 +72,11 @@ class JobHistoryManager:
         return transformed
 
 
-    def save_job(self, job_data, files, generated_files):
+    def save_job(self, job_data, files, generated_files, job_id=None):
         timestamp = datetime.now().isoformat()
         user = os.getenv('USER')
-        job_id = str(int(uuid.uuid4().int & 0xFFFFFFFFF))
+        if job_id is None:
+            job_id = str(int(uuid.uuid4().int & 0xFFFFFFFFF))
 
         form_data = self.transform_form_data(dict(job_data), job_data.get('location'))
         job_record = {
@@ -91,11 +93,11 @@ class JobHistoryManager:
             },
             'script': job_data.get('run_command'),
             'driver': job_data.get('driver'),
-            'additional_files': json.loads(job_data.get('additional_files')),
+            'additional_files': json.loads(job_data.get('additional_files', '{}')),
             'form_data': form_data
         }
 
-        base_dir = os.path.join('/scratch/user', user, 'drona_composer', 'jobs')
+        base_dir = os.path.join(get_drona_dir(), 'jobs')
         try:
             Path(base_dir).mkdir(parents=True, exist_ok=True)
             history_file = os.path.join(base_dir, f"{user}_history.json")
@@ -112,7 +114,7 @@ class JobHistoryManager:
             try:
                 with open(history_file, 'w') as f:
                     json.dump(history, f, indent=2)
-                return True
+                return job_record
             except PermissionError:
                 return False
         except PermissionError:
@@ -121,7 +123,7 @@ class JobHistoryManager:
     def get_user_history(self):
         user = os.getenv('USER')
 
-        base_dir = os.path.join('/scratch/user', user, 'drona_composer', 'jobs')
+        base_dir = os.path.join(get_drona_dir(), 'jobs')
         try:
             Path(base_dir).mkdir(parents=True, exist_ok=True)
             history_file = os.path.join(base_dir, f"{user}_history.json")
