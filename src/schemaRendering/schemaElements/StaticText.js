@@ -221,6 +221,7 @@ function StaticText(props) {
       name={props.name}
       label={props.label}
       help={props.help}
+	  useLabel={props.useLabel}
     >
       <div className="py-2 position-relative">
         {isLoading && (
