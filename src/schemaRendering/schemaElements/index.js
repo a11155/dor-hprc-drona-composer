@@ -18,7 +18,7 @@ import Hidden from "./Hidden";
 import AutocompleteSelect from "./AutocompleteSelect";
 import DragDropContainer from "./DragDropContainer";
 import JobNameLocation from "./JobNameLocation";
-
+import DynamicRadioGroup from "./DynamicRadioGroup";
 
 export {
 	Text,
@@ -41,7 +41,8 @@ export {
 	CollapsibleRowContainer,
 	CollapsibleColContainer,
 	DragDropContainer,
-	JobNameLocation
+	JobNameLocation,
+	DynamicRadioGroup
 }
 
 export const componentsMap = {
@@ -63,7 +64,8 @@ export const componentsMap = {
 	collapsibleRowContainer: CollapsibleRowContainer,
 	collapsibleColContainer: CollapsibleColContainer,
 	dragDropContainer: DragDropContainer,
-	jobNameLocation: JobNameLocation
+	jobNameLocation: JobNameLocation,
+	dynamicRadioGroup: DynamicRadioGroup
 
 };
 
