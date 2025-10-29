@@ -31,6 +31,7 @@ def submit_job_route():
     """HTTP endpoint for job submission"""
     files = request.files
     
+    # Generate job_id upfront
     job_id = str(int(uuid.uuid4().int & 0xFFFFFFFFF))
     
     params = dict(request.form)
@@ -56,6 +57,7 @@ def submit_job_route():
 
     history_manager = JobHistoryManager()
 
+    # Pass job_id to save_job
     job_record = history_manager.save_job(
         params,
         files,
@@ -107,7 +109,7 @@ def get_job_from_history_route(job_id):
     job_data = history_manager.get_job(job_id)
 
     if not job_data:
-        return "Job not found", 404
+        return jsonify({'error': 'Job not found'}), 404
 
     return jsonify(job_data)
 

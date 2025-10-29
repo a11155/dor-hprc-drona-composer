@@ -18,6 +18,7 @@ export default function JobNameLocation({
     customJobName,
     customJobLocation,
     label,
+    pickerLabel = "Change",
 
     // pass-through from Composer/FieldRenderer
     sync_job_name,          // e.g., props.sync_job_name
@@ -25,15 +26,9 @@ export default function JobNameLocation({
     setRunLocation,
     setBaseRunLocation,
     onChange,              // forwarded from FieldRenderer (handleValueChange wrapper)
-    setError,              // optional; safe to accept/ignore
-    ...rest                // future-proof
+    ...rest
 }) {
-    // derive unique ids to avoid collisions
-    // useEffect(() => {
-    //     console.groupCollapsed("11111 [Picker] sanity");
-    //     console.log("typeof setBaseRunLocation:", typeof setBaseRunLocation);
-    //     console.groupEnd();
-    // }, [setBaseRunLocation]);
+
 
     useEffect(() => {
         if (customJobLocation) {
@@ -75,18 +70,16 @@ export default function JobNameLocation({
 
                     {showLocation && (
                         <div style={{ display: 'flex', flexGrow: 1, gap: '1.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
-                                <label style={{ whiteSpace: 'nowrap' }}>Location</label>
-                            </div>
+
                             <div style={{ flex: 1 }}>
                                 <Picker
                                     name={"location"}
                                     useLabel={false}
-                                    localLabel="Change"
+                                    localLabel={pickerLabel}
                                     defaultLocation={runLocation}
                                     onChange={onChange}          // keep renderer state/hooks consistent
                                     setBaseRunLocation={setBaseRunLocation}
-                                    style={{ width: "100%", alignItems: "flex-start" }}
+                                    style={{ width: "100%", alignItems: "flex" }}
                                     disableChange={disableJobLocationChange}
                                 />
                             </div>
