@@ -9,6 +9,8 @@ import signal
 import sys
 from datetime import datetime
 from flask import request, jsonify, Blueprint
+from views.utils import get_drona_dir
+
 
 # Directory for job communication
 JOBS_DIR = os.path.join('/var/www/ood/apps/dev/a11155/gateway/dor-hprc-drona-composer/active_jobs')
@@ -23,7 +25,7 @@ def get_jobs_dir():
     return jobs_dir
 
 # Python pty is necessary to handle things carriage returns
-def create_pty_wrapper_script(job_id, jobs_dir, bash_cmd, drona_job_id=None):
+def create_pty_wrapper_script(job_id, jobs_dir, bash_cmd, drona_job_id=None, job_location=None, runtime_dir=None):
     """Create a Python wrapper script that uses PTY for proper terminal emulation"""
     wrapper_content = f'''#!/usr/bin/env python3
 import os
@@ -85,6 +87,9 @@ def run_command_with_pty():
         
         # Add DRONA_WF_ID if provided
         {f"env['DRONA_WF_ID'] = '{drona_job_id}'" if drona_job_id else ""}
+        {f"env['DRONA_WF_LOCATION'] = '{job_location}'" if job_location else ""}
+        {f"env['DRONA_WF_RUNTIME_DIR'] = '{runtime_dir}'" if runtime_dir else ""}
+
         
         # Start process with PTY
         proc = subprocess.Popen(
@@ -196,12 +201,12 @@ if __name__ == "__main__":
 '''
     return wrapper_content
 
-def start_external_job(job_id, bash_cmd, drona_job_id=None):
+def start_external_job(job_id, bash_cmd, drona_job_id=None, job_location=None, runtime_dir=None):
     """Start job as completely external process using PTY"""
     jobs_dir = get_jobs_dir()
     
     # Create Python wrapper script with PTY support
-    wrapper_content = create_pty_wrapper_script(job_id, jobs_dir, bash_cmd, drona_job_id)
+    wrapper_content = create_pty_wrapper_script(job_id, jobs_dir, bash_cmd, drona_job_id, job_location, runtime_dir)
     wrapper_path = os.path.join(jobs_dir, f"{job_id}_wrapper.py")
     
     with open(wrapper_path, 'w') as f:
@@ -260,6 +265,8 @@ def start_job_route():
     data = request.get_json()
     bash_cmd = data.get('bash_cmd', '')
     drona_job_id = data.get('drona_job_id')
+    job_location = data.get('job_location')
+    runtime_dir = get_drona_dir()
 
     if not bash_cmd:
         return jsonify({'error': 'No bash_cmd provided'}), 400
@@ -267,7 +274,7 @@ def start_job_route():
     job_id = str(uuid.uuid4())
 
     # Start external job (non-blocking)
-    start_external_job(job_id, bash_cmd, drona_job_id)
+    start_external_job(job_id, bash_cmd, drona_job_id, job_location, runtime_dir)
 
     return jsonify({
         'job_id': job_id,

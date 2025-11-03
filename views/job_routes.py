@@ -50,6 +50,7 @@ def submit_job_route():
     
     engine = Engine()
     engine.set_environment(params.get('runtime'), params.get('env_dir'))
+    # console.log(engine)
     bash_script_path = engine.generate_script(params)
     driver_script_path = engine.generate_driver_script(params)
     
@@ -72,12 +73,15 @@ def submit_job_route():
     if isinstance(job_record, dict) and 'job_id' in job_record:
         return jsonify({
             'bash_cmd': bash_cmd,
-            'drona_job_id': job_record['job_id']
+            'drona_job_id': job_record['job_id'],
+            'location' : params.get('location')
         })
     else:
         # If save_job failed, still return bash_cmd but without drona_job_id
         return jsonify({
-            'bash_cmd': bash_cmd
+            'bash_cmd': bash_cmd,
+            'location' : params.get('location')
+
         })
 
 def preview_job_route():
