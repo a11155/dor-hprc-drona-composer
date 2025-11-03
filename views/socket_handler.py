@@ -25,7 +25,7 @@ def get_jobs_dir():
     return jobs_dir
 
 # Python pty is necessary to handle things carriage returns
-def create_pty_wrapper_script(job_id, jobs_dir, bash_cmd, drona_job_id=None, job_location=None, runtime_dir=None):
+def create_pty_wrapper_script(jobs_dir, bash_cmd, drona_job_id, job_location=None, runtime_dir=None):
     """Create a Python wrapper script that uses PTY for proper terminal emulation"""
     wrapper_content = f'''#!/usr/bin/env python3
 import os
@@ -39,7 +39,7 @@ import subprocess
 from datetime import datetime
 
 # Job configuration
-JOB_ID = "{job_id}"
+JOB_ID = "{drona_job_id}"
 JOBS_DIR = "{jobs_dir}"
 STATUS_FILE = os.path.join(JOBS_DIR, f"{{JOB_ID}}.json")
 OUTPUT_FILE = os.path.join(JOBS_DIR, f"{{JOB_ID}}.out")
@@ -85,7 +85,6 @@ def run_command_with_pty():
             'PYTHONUNBUFFERED': '1'
         }})
         
-        # Add DRONA_WF_ID if provided
         {f"env['DRONA_WF_ID'] = '{drona_job_id}'" if drona_job_id else ""}
         {f"env['DRONA_WF_LOCATION'] = '{job_location}'" if job_location else ""}
         {f"env['DRONA_WF_RUNTIME_DIR'] = '{runtime_dir}'" if runtime_dir else ""}
@@ -201,13 +200,13 @@ if __name__ == "__main__":
 '''
     return wrapper_content
 
-def start_external_job(job_id, bash_cmd, drona_job_id=None, job_location=None, runtime_dir=None):
+def start_external_job(bash_cmd, drona_job_id, job_location=None, runtime_dir=None):
     """Start job as completely external process using PTY"""
     jobs_dir = get_jobs_dir()
     
     # Create Python wrapper script with PTY support
-    wrapper_content = create_pty_wrapper_script(job_id, jobs_dir, bash_cmd, drona_job_id, job_location, runtime_dir)
-    wrapper_path = os.path.join(jobs_dir, f"{job_id}_wrapper.py")
+    wrapper_content = create_pty_wrapper_script(jobs_dir, bash_cmd, drona_job_id, job_location, runtime_dir)
+    wrapper_path = os.path.join(jobs_dir, f"{drona_job_id}_wrapper.py")
     
     with open(wrapper_path, 'w') as f:
         f.write(wrapper_content)
@@ -271,13 +270,13 @@ def start_job_route():
     if not bash_cmd:
         return jsonify({'error': 'No bash_cmd provided'}), 400
 
-    job_id = str(uuid.uuid4())
+    # job_id = str(uuid.uuid4())
 
     # Start external job (non-blocking)
-    start_external_job(job_id, bash_cmd, drona_job_id, job_location, runtime_dir)
+    start_external_job(bash_cmd, drona_job_id, job_location, runtime_dir)
 
     return jsonify({
-        'job_id': job_id,
+        'job_id': drona_job_id,
         'status': 'Job started externally',
         'message': 'Job queued successfully'
     })

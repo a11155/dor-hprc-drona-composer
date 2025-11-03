@@ -27,12 +27,13 @@ def extract_job_id(submit_response):
     },
     format_string="{timestamp} {user} {env_dir}/{env} {job_name}"
 )
+
 def submit_job_route():
     """HTTP endpoint for job submission"""
     files = request.files
     
     # Generate job_id upfront
-    job_id = str(int(uuid.uuid4().int & 0xFFFFFFFFF))
+    drona_job_id = str(int(uuid.uuid4().int & 0xFFFFFFFFF))
     
     params = dict(request.form)
     if not params.get('name') or params.get('name').strip() == '':
@@ -66,22 +67,19 @@ def submit_job_route():
             "bash_script":   bash_script_path,
             "driver_script": driver_script_path
         },
-        job_id=job_id
+        job_id=drona_job_id
     )
 
     # Handle case where save_job returns False on error
     if isinstance(job_record, dict) and 'job_id' in job_record:
-        return jsonify({
+        print(f"[WARN] save_job() failed or returned invalid record for job {drona_job_id}")
+        # Fall back to the generated ID
+        job_record = {'job_id': drona_job_id}
+    
+    return jsonify({
             'bash_cmd': bash_cmd,
             'drona_job_id': job_record['job_id'],
             'location' : params.get('location')
-        })
-    else:
-        # If save_job failed, still return bash_cmd but without drona_job_id
-        return jsonify({
-            'bash_cmd': bash_cmd,
-            'location' : params.get('location')
-
         })
 
 def preview_job_route():
