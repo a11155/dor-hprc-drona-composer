@@ -20,6 +20,7 @@ import DragDropContainer from "./DragDropContainer";
 import JobNameLocation from "./JobNameLocation";
 import DynamicRadioGroup from "./DynamicRadioGroup";
 import CheckboxGroup from "./CheckboxGroup";
+import DynamicCheckboxGroup from "./DynamicCheckboxGroup";
 
 export {
 	Text,
@@ -44,7 +45,8 @@ export {
 	DragDropContainer,
 	JobNameLocation,
 	DynamicRadioGroup,
-	CheckboxGroup
+	CheckboxGroup,
+	DynamicCheckboxGroup
 }
 
 export const componentsMap = {
@@ -68,7 +70,8 @@ export const componentsMap = {
 	dragDropContainer: DragDropContainer,
 	jobNameLocation: JobNameLocation,
 	dynamicRadioGroup: DynamicRadioGroup,
-	checkboxGroup: CheckboxGroup
+	checkboxGroup: CheckboxGroup,
+	dynamicCheckboxGroup: DynamicCheckboxGroup
 
 };
 
