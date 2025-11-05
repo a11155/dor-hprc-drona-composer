@@ -1,8 +1,8 @@
 /**
- * @name DynamicRadioGroup
- * @description A radio group that dynamically loads its options from a retriever.
- * Mirrors DynamicCheckboxGroup behavior: warns if the prior selection disappears
- * after a refresh; user choosing a new option clears the warning.
+ * @name DynamicCheckboxGroup
+ * @description A checkbox group that dynamically loads its options from a retriever.
+ * Mirrors DynamicSelect/RadioGroup behavior, warns if prior selections disappear,
+ * and PRUNES invalid selections on any user interaction.
  */
 
 import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from "react";
@@ -11,12 +11,12 @@ import { FormValuesContext } from "../FormValuesContext";
 import { getFieldValue } from "../utils/fieldUtils";
 import config from "@config";
 
-function DynamicRadioGroup(props) {
+function DynamicCheckboxGroup(props) {
     const [options, setOptions] = useState(props.options || []);
-    const [value, setValue] = useState(props.value || "");
+    const [selectedValues, setSelectedValues] = useState(Array.isArray(props.value) ? props.value : []);
     const [isLoading, setIsLoading] = useState(false);
     const [isEvaluated, setIsEvaluated] = useState(false);
-    const [isValueInvalid, setIsValueInvalid] = useState(false); // current value no longer present
+    const [invalidSelections, setInvalidSelections] = useState([]); // values no longer present
 
     const { values: formValues } = useContext(FormValuesContext);
     const formValuesRef = useRef(formValues);
@@ -27,7 +27,7 @@ function DynamicRadioGroup(props) {
     }, [formValues]);
 
     useEffect(() => {
-        setValue(props.value || "");
+        setSelectedValues(Array.isArray(props.value) ? props.value : []);
     }, [props.value]);
 
     // fields that affect retriever params
@@ -42,12 +42,13 @@ function DynamicRadioGroup(props) {
     const prodUrl = config.production.dashboard_url;
     const curUrl = process.env.NODE_ENV === "development" ? devUrl : prodUrl;
 
-    // After options change, mark prior selection as invalid if missing (do NOT append it)
+    // After options change, mark prior selections that are now missing (do NOT append them)
     useEffect(() => {
         if (!isEvaluated) return;
         const optionValues = new Set(options.map((o) => o.value));
-        setIsValueInvalid(!!value && !optionValues.has(value));
-    }, [options, value, isEvaluated]);
+        const missing = selectedValues.filter((v) => !optionValues.has(v));
+        setInvalidSelections(missing);
+    }, [options, selectedValues, isEvaluated]);
 
     const fetchOptions = useCallback(async () => {
         const retrieverPath = props.retrieverPath || props.retriever;
@@ -66,15 +67,15 @@ function DynamicRadioGroup(props) {
         try {
             const params = new URLSearchParams();
             if (props.retrieverParams && typeof props.retrieverParams === "object") {
-                Object.entries(props.retrieverParams).forEach(([key, val]) => {
-                    if (typeof val === "string" && val.startsWith("$")) {
-                        const fieldName = val.substring(1);
+                Object.entries(props.retrieverParams).forEach(([key, value]) => {
+                    if (typeof value === "string" && value.startsWith("$")) {
+                        const fieldName = value.substring(1);
                         const fieldValue = getFieldValue(currentFormValues, fieldName);
                         if (fieldValue !== undefined) {
                             params.append(key, JSON.stringify(fieldValue));
                         }
                     } else {
-                        params.append(key, JSON.stringify(val));
+                        params.append(key, JSON.stringify(value));
                     }
                 });
             }
@@ -89,11 +90,11 @@ function DynamicRadioGroup(props) {
                 let errorData = {};
                 try { errorData = await response.json(); } catch { }
                 props.setError?.({
-                    message: errorData.message || "Failed to retrieve radio options",
+                    message: errorData.message || "Failed to retrieve checkbox options",
                     status_code: response.status,
                     details: errorData.details || errorData
                 });
-                setIsEvaluated(true); // show empty state if any
+                setIsEvaluated(true); // show empty state
                 return;
             }
 
@@ -115,7 +116,7 @@ function DynamicRadioGroup(props) {
         }
     }, [isShown, isEvaluated, fetchOptions]);
 
-    // Refetch when relevant params change (clear, debounce, then fetch)
+    // Refetch when relevant params change
     const prevRelevantValuesRef = useRef({});
     useEffect(() => {
         if (!isShown || !props.retrieverParams || relevantFieldNames.length === 0) return;
@@ -133,17 +134,26 @@ function DynamicRadioGroup(props) {
         if (changed && isEvaluated) {
             setIsEvaluated(false);
             setOptions([]);
-            const t = setTimeout(() => fetchOptions(), 300); // debounce to avoid flicker thrash
+            const t = setTimeout(() => fetchOptions(), 300); // debounce
             return () => clearTimeout(t);
         }
     }, [formValues, isShown, props.retrieverParams, relevantFieldNames, isEvaluated, fetchOptions]);
 
-    // User selects a new option -> clear invalid flag, emit value
-    const handleValueChange = (event) => {
-        const newValue = event.target.value;
-        setValue(newValue);
-        setIsValueInvalid(false);
-        props.onChange?.(props.index, newValue);
+    // PRUNE invalid selections on ANY user interaction (so stale values don't linger)
+    const handleToggle = (event) => {
+        const { value, checked } = event.target;
+
+        let next = checked
+            ? (selectedValues.includes(value) ? selectedValues : [...selectedValues, value])
+            : selectedValues.filter((v) => v !== value);
+
+        // prune anything not in current options
+        const optionValues = new Set(options.map((o) => o.value));
+        next = next.filter((v) => optionValues.has(v));
+
+        setSelectedValues(next);
+        if (invalidSelections.length) setInvalidSelections([]);
+        props.onChange?.(props.index, next);
     };
 
     return (
@@ -161,16 +171,17 @@ function DynamicRadioGroup(props) {
                 options.map((option) => {
                     if (!option || typeof option.value === "undefined") return null;
                     const id = `${props.name}-${option.value}`;
+                    const checked = selectedValues.includes(option.value);
                     return (
                         <div className="form-check form-check-inline" key={option.value}>
                             <input
                                 id={id}
-                                type="radio"
+                                type="checkbox"
                                 className="form-check-input"
                                 value={option.value}
                                 name={props.name}
-                                checked={value === option.value}
-                                onChange={handleValueChange}
+                                checked={checked}
+                                onChange={handleToggle}
                             />
                             <label className="form-check-label" htmlFor={id}>
                                 {option.label ?? String(option.value)}
@@ -179,7 +190,8 @@ function DynamicRadioGroup(props) {
                     );
                 })
             )}
-            {isValueInvalid && (
+
+            {invalidSelections.length > 0 && (
                 <div className="text-danger" style={{ fontSize: "0.875em", marginTop: "0.25rem" }}>
                     The previously selected option is no longer available
                 </div>
@@ -188,4 +200,4 @@ function DynamicRadioGroup(props) {
     );
 }
 
-export default DynamicRadioGroup;
+export default DynamicCheckboxGroup;

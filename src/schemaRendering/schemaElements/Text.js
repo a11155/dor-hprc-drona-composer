@@ -58,7 +58,7 @@ function Text(props) {
         placeholder={props.placeholder}
         className="form-control"
         onChange={props.disableChange ? undefined : handleValueChange}
-        disabled={props.disableChange}
+        readOnly={props.disableChange}
 
       />
     </FormElementWrapper>

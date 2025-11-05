@@ -18,7 +18,9 @@ import Hidden from "./Hidden";
 import AutocompleteSelect from "./AutocompleteSelect";
 import DragDropContainer from "./DragDropContainer";
 import JobNameLocation from "./JobNameLocation";
-
+import DynamicRadioGroup from "./DynamicRadioGroup";
+import CheckboxGroup from "./CheckboxGroup";
+import DynamicCheckboxGroup from "./DynamicCheckboxGroup";
 
 export {
 	Text,
@@ -41,7 +43,10 @@ export {
 	CollapsibleRowContainer,
 	CollapsibleColContainer,
 	DragDropContainer,
-	JobNameLocation
+	JobNameLocation,
+	DynamicRadioGroup,
+	CheckboxGroup,
+	DynamicCheckboxGroup
 }
 
 export const componentsMap = {
@@ -63,7 +68,10 @@ export const componentsMap = {
 	collapsibleRowContainer: CollapsibleRowContainer,
 	collapsibleColContainer: CollapsibleColContainer,
 	dragDropContainer: DragDropContainer,
-	jobNameLocation: JobNameLocation
+	jobNameLocation: JobNameLocation,
+	dynamicRadioGroup: DynamicRadioGroup,
+	checkboxGroup: CheckboxGroup,
+	dynamicCheckboxGroup: DynamicCheckboxGroup
 
 };
 
