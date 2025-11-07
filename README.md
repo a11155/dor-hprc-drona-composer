@@ -66,3 +66,27 @@ Drona Composer will check for system environments (an environment is the buildin
 
 Researchers can "import" new environments to their local storage. Right now, all environments available to import are stored locally inside the repo in directory **environments-repo/clustername/** (where clustername was discussed above). You are welcome to provide more environments in this directory for researchers to "import". 
 
+
+
+# Citation
+
+If you use Drona Composer, please cite our paper:
+```bibtex
+@inproceedings{10.1145/3731599.3767431,
+  author = {Kryvenko, Andrii and Pham, Duy and Pennings, Marinus and Liu, Honggao},
+  title = {Is it an HPC Workflow Assistant? Is it a Framework? It's Drona Workflow Engine},
+  year = {2025},
+  isbn = {9798400718717},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3731599.3767431},
+  doi = {10.1145/3731599.3767431},
+  abstract = {HPC resources are becoming increasingly complex, while HPC itself is becoming more popular among novice researchers across a wide range of research domains. These novice researchers often lack typical HPC skills, which results in a steep learning curve that leads to frustration and inefficient use of HPC resources. To address this, we developed Drona Workflow Engine. Drona offers an intuitive Graphical User Interface (GUI) that assists researchers in running their scientific workflows. The researcher provides the required information for their specific scientific workflow, and Drona generates all the scripts needed to run that workflow on the researcher’s behalf. For transparency and additional flexibility, Drona will display all generated scripts in a fully editable preview window, allowing the researcher to make any final adjustments as needed. Drona also provides a flexible framework for importing, creating, adapting, and sharing custom scientific workflows. Drona significantly enhances researcher productivity by abstracting the underlying HPC complexities while retaining full control over their workflows.},
+  booktitle = {Proceedings of the SC '25 Workshops of the International Conference for High Performance Computing, Networking, Storage and Analysis},
+  pages = {705–714},
+  numpages = {10},
+  keywords = {High Performance Computing, Frameworks, Scientific Workflows, Batch processing, Schedulers, GUI},
+  location = {},
+  series = {SC Workshops '25}
+}
+```
