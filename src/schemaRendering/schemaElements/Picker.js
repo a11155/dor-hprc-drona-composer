@@ -291,7 +291,7 @@ function Picker(props) {
               alignItems: "center",        // vertically center text/icons
 
             }}
-            disabled={props.disableChange}
+            readOnly={props.disableChange}
           >
             {props.localLabel}
           </button>
@@ -304,7 +304,7 @@ function Picker(props) {
             className="form-control"
             onChange={handleValueChange}
             ref={inputRef}
-            disabled={props.disableChange}
+            readOnly={props.disableChange}
           />
         </div>
       </FormElementWrapper>
