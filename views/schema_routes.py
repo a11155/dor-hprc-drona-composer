@@ -5,7 +5,7 @@ import jsonref
 import subprocess
 import traceback
 from .error_handler import APIError, handle_api_error
-
+from .utils import get_envs_dir
 def iterate_schema(schema_dict):
     """Generator that yields all elements in the schema including nested ones"""
     for key, value in schema_dict.items():
@@ -124,10 +124,19 @@ def execute_script(
 def get_schema_route(environment):
     """Get schema.json for a specific environment"""
     env_dir = request.args.get("src")
-    if env_dir is None:
-        base_path = os.path.join('environments', environment)
-    else:
-        base_path = os.path.join(env_dir, environment)
+    
+    if not env_dir:
+        eres = get_envs_dir()
+        if not eres["ok"]:
+            return jsonify({"message": eres["reason"]}), 400
+        env_dir = eres["path"]
+    
+    base_path = os.path.join(env_dir, environment)
+
+    #if env_dir is None:
+     #   base_path = os.path.join('environments', environment)
+    #else:
+     #   base_path = os.path.join(env_dir, environment)
 
     schema_path = os.path.join(base_path, "schema.json")
     if os.path.exists(schema_path):
@@ -157,17 +166,24 @@ def get_schema_route(environment):
 
 def get_map_route(environment):
     """Get map.json for a specific environment"""
+    #env_dir = request.args.get("src")
+    #if env_dir is None:
+     #   map_path = os.path.join('environments', environment, 'map.json')
+    #else:
+    #    map_path = os.path.join(env_dir, environment, 'map.json')
     env_dir = request.args.get("src")
-    if env_dir is None:
-        map_path = os.path.join('environments', environment, 'map.json')
-    else:
-        map_path = os.path.join(env_dir, environment, 'map.json')
+    if not env_dir:
+        eres = get_envs_dir()
+        if not eres["ok"]:
+            return jsonify({"message": eres["reason"]}), 400
+        env_dir = eres["path"]
+    map_path = os.path.join(env_dir, environment, 'map.json')
 
     if os.path.exists(map_path):
         map_data = open(map_path, 'r').read()
     else:
         raise FileNotFoundError(f"{os.path.join(env_dir, environment, 'map.json')} not found")
-
+    
     return map_data
 
 @handle_api_error

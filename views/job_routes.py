@@ -9,6 +9,7 @@ from .history_manager import JobHistoryManager
 from .utils import create_folder_if_not_exist
 from machine_driver_scripts.engine import Engine
 from .file_utils import save_file
+from .utils import get_runs_dir, get_envs_dir
 
 logger = Logger()
 socketio = None  # Will be initialized when passed from main app
@@ -41,7 +42,10 @@ def submit_job_route():
     
     if not params.get('location') or params.get('location').strip() == '':
         user = os.getenv('USER')
-        params['location'] = f"/scratch/user/{user}/drona_composer/runs"
+        rres = get_runs_dir()
+        if not rres['ok']:
+            return jsonify({"message": rres["reason"]}), 400
+        params['location'] = rres["path"]
     
     create_folder_if_not_exist(params.get('location'))
     
@@ -50,6 +54,13 @@ def submit_job_route():
         save_file(file, params.get('location'))
     
     engine = Engine()
+    env_dir = params.get('env_dir')
+    if not env_dir:
+        env_dir = get_envs_dir()
+        if not env_dir["ok"]:
+            return jsonify({"message": env_dir["reason"]}), 400
+    
+    params['env_dir'] = env_dir["path"]
     engine.set_environment(params.get('runtime'), params.get('env_dir'))
     # console.log(engine)
     bash_script_path = engine.generate_script(params)
@@ -91,9 +102,21 @@ def preview_job_route():
     
     if not params.get('location') or params.get('location').strip() == '':
         user = os.getenv('USER')
-        params['location'] = f"/scratch/user/{user}/drona_composer/runs"
+        rres = get_runs_dir()
+        if not rres['ok']:
+            return jsonify({"message": rres["reason"]}), 400
+        params['location'] = rres["path"]
+    
     
     engine = Engine()
+    env_dir = params.get('env_dir')
+
+    if not env_dir:
+         env_dir = get_envs_dir()
+         if not env_dir["ok"]:
+            return jsonify({"message": env_dir["reason"]}), 400
+
+    params['env_dir'] = env_dir["path"]
     engine.set_environment(params.get('runtime'), params.get('env_dir'))
     preview_job = engine.preview_script(params)
 

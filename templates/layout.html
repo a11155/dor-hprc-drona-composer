@@ -89,11 +89,19 @@
       </nav>
 
       <script>
-        document.dashboard_url = "{{ config.dashboard_url }}";
+        window.APP_ROOT = {{ request.script_root|tojson }};
+        document.dashboard_url = window.APP_ROOT;
+        
         document.file_app_url = "{{ config.file_app_url }}";
         document.file_editor_url = "{{ config.file_editor_url }}";
         document.user = "{{ config.user }}";
-        document.drona_dir = "{{ config.drona_dir }}"
+        document.drona_dir = {{ config.drona_dir|tojson }}
+        
+    	window.CONFIG_STATUS_URL = "{{ url_for('job_composer.config_status') }}";
+    	window.CONFIG_SAVE_URL = "{{ url_for('job_composer.config_save') }}";
+    	
+    	console.log("APP_ROOT:", window.APP_ROOT);
+    	console.log("Config endpoints:", window.CONFIG_STATUS_URL, window.CONFIG_SAVE_URL);
       </script>
 
       <div id="main-container" class="container" role="main">
@@ -111,5 +119,6 @@
     <script src="{{ url_for('static', filename='jquery-ui-1.12.1/jquery-ui.min.js') }}"></script>
     <script src="{{ url_for('static', filename='chartjs-2.9.3/Chart.bundle.min.js') }}"></script>
     <!-- <script src="{{ url_for('static', filename='custom/js/job_composer.js') }}"></script> -->
+    
   </body>
 </html>
