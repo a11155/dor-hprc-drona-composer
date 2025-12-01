@@ -40,6 +40,25 @@ const FieldRenderer = ({
     }
 
     if (Element) {
+      // Normalize defaultLocation for picker-like components
+      let extraProps = {};
+    
+      if (type === "picker") {
+        const schemaDefault =
+          attributes.defaultLocation !== undefined
+            ? attributes.defaultLocation
+            : undefined;
+    
+        const fallbackFromLocation =
+          name === "location"
+            ? (locationProps.runLocation ?? "")
+            : "";
+    
+        extraProps.defaultLocation =
+          (typeof schemaDefault === "string" ? schemaDefault : null) ??
+          fallbackFromLocation;
+      }
+    
       return (
         <div key={name} className={fieldStyles}>
           <Element
@@ -48,6 +67,7 @@ const FieldRenderer = ({
             labelOnTop={labelOnTop}
             value={value}
             {...attributes}
+            {...extraProps}
             setError={setError}
             onChange={(_, val) => handleValueChange(name, val)}
             {...locationProps}

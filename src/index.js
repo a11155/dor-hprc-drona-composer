@@ -36,29 +36,11 @@ export function App() {
   const envModalRef = useRef(null);
   const multiPaneRef = useRef(null);
 
-  const defaultRunLocation = document.drona_dir
-  ? `${document.drona_dir}/runs`
-  : "";
-  
+  const defaultRunLocation = document.drona_dir + "/runs";
   const [runLocation, setRunLocation] = useState(
     defaultRunLocation
   );
-
-  async function refreshRunLocation() {
-  try {
-    const r = await fetch(window.CONFIG_STATUS_URL, { credentials: "same-origin" });
-    const j = await r.json();
-    if (!j.missing_config && j.drona_dir) {
-      setRunLocation(`${j.drona_dir}/runs`);
-        }
-    } catch (e) {
-    console.error("refreshRunLocation failed", e);
-  }
-  }
-
-  useEffect(() => {
-    refreshRunLocation();
-  }, []);
+  const [baseRunLocation, setBaseRunLocation] = useState(defaultRunLocation)
 
 
   const [environments, setEnvironments] = useState([]);
@@ -82,10 +64,12 @@ export function App() {
       });
   }, []);
 
-  function sync_job_name(name) {
+  function sync_job_name(name, customRunLocation) {
+    const preferredLocation = customRunLocation || baseRunLocation;
     setRunLocation(
-      defaultRunLocation + "/" + name
+      preferredLocation + "/" + name
     );
+    setBaseRunLocation(preferredLocation);
   }
 
   useEffect(() => {
@@ -345,14 +329,13 @@ export function App() {
           environments={environments}
           fields={fields}
           runLocation={runLocation}
-          setRunLocation={setRunLocation}
           messages={messages}
           panes={panes}
           setPanes={setPanes}
-	      jobStatus={jobStatus}
-	      globalFiles={globalFiles}
+          jobStatus={jobStatus}
+          globalFiles={globalFiles}
           handlePreview={handlePreview}
-	      rerunInfo={rerunInfo}
+          rerunInfo={rerunInfo}
           handleEnvChange={handleEnvChange}
           handleAddEnv={handleAddEnv}
           handleUploadedFiles={handleUploadedFiles}
@@ -366,6 +349,7 @@ export function App() {
           composerRef={composerRef}
           showSplitScreenModal={showSplitScreenModal}
           setShowSplitScreenModal={setShowSplitScreenModal}
+          setBaseRunLocation={setBaseRunLocation}
         />
         {showRerunModal && (
           <RerunPromptModal

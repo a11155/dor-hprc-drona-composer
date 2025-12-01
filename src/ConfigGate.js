@@ -10,19 +10,25 @@ export default function ConfigGate() {
   useEffect(() => {
     (async () => {
       try {
-        
+        if (!window.CONFIG_STATUS_URL) {
+          console.error("ConfigGate: CONFIG_STATUS_URL is not defined on window");
+          setMissing(true);
+          setReason("Configuration status URL not defined.");
+          setLoading(false);
+          return;
+        }
         const r = await fetch(window.CONFIG_STATUS_URL, { credentials: "same-origin" });
         const j = await r.json();
-        console.log("ConfigGate: status payload =", j);
         if (j.missing_config) {
           setMissing(true);
           setReason(j.reason || "Configuration not found.");
-          setCurrentDir("");
+          setCurrentDir(""); // fall back to $HOME in UI
         } else {
           setMissing(false);
           setCurrentDir(j.drona_dir || "");
         }
-      } catch {
+      } catch (e) {
+        console.error("ConfigGate: status fetch failed:", e);
         setMissing(true);
         setReason("Failed to check configuration status.");
       } finally {
@@ -32,43 +38,42 @@ export default function ConfigGate() {
   }, []);
 
   async function handleDronaPathChange(_index, selectedPath) {
-    try {
+      if (!selectedPath) { alert("No directory was selected."); return; }
       const resp = await fetch(window.CONFIG_SAVE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         body: JSON.stringify({ drona_dir: selectedPath }),
       });
-      const out = await resp.json();
-      console.log("OUT:", out);
+      const out = await resp.json().catch(() => ({}));
       if (resp.ok && out.status === "ok") {
-          window.location.reload();
-        }
-    } catch (e) {
-      alert(e.message || "Failed to save Drona directory.");
+        window.location.reload();
+      } else {
+        alert(out.message || out.error || `Save failed (${resp.status})`);
+      }
     }
-  }
 
   if (loading || !missing) return null;
-  // renders a small banner + opens your existing Picker modal
+
   return (
     <div className="alert alert-warning" style={{ marginBottom: 12 }}>
       <div style={{ fontWeight: 600, marginBottom: 6 }}>Drona directory not set</div>
       <div style={{ marginBottom: 8 }}>{reason}</div>
-
       <Picker
-        name="dronaDirPicker"
-        label="Drona working directory"
-        localLabel="Browse Directories"
-        showFiles={false}
-        defaultLocation={currentDir || "$HOME"}
-        defaultPaths={{ Home: "$HOME", Scratch: "/scratch/user/$USER" }}
-        useHPCDefaultPaths={true}
-        onChange={() => {
-            handleDronaPathChange(i, v);
-        }}
-        index={0}
-      />
+          name="dronaDirPicker"
+          label="Drona working directory"
+          localLabel="Browse Directories"
+          showFiles={false}
+          defaultLocation={currentDir || "$HOME"}
+          defaultPaths={{ Home: "$HOME", Scratch: "/scratch/user/$USER" }}
+          useHPCDefaultPaths={true}
+          onChange={(_, v) => {
+            // v is the selected path (string); hand it to the saver
+            handleDronaPathChange(_, v);
+          }}
+          index={0}
+        />
+
       <small className="text-muted">
         Pick the folder that will contain your Drona composer data (will create a folder called drona_composer inside chosen folder).
       </small>

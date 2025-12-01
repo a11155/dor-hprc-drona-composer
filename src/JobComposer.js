@@ -120,6 +120,10 @@ function JobComposer({
 
   const handlePreview = () => {
     // Validate required fields before showing preview
+    if (!props.environment || !props.environment.env) {
+    setError("Please choose an environment before preview.");
+    return;
+    }
     if (props.composerRef?.current) {
       const currentFields = props.composerRef.current.getFields();
       const validation = validateRequiredFields(currentFields);
@@ -160,6 +164,10 @@ function JobComposer({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!props.environment || !props.environment.env) {
+    setError("Please choose an environment before submitting.");
+    return;
+    }
 
     // Block submission if job is already running
     if (isJobRunning) {
@@ -214,8 +222,6 @@ function JobComposer({
       <div className="card shadow" style={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
 
         <div className="card-body" style={{ overflowY: 'auto', flex: '1 1 auto' }}>
-        {console.log("JobComposer: rendering ConfigGate")}
-        {console.log("PROP ENV", props.environment)}
 
 	  <ConfigGate />
           
@@ -235,13 +241,6 @@ function JobComposer({
             <div className="row">
               <div className="col-lg-12">
                 <div id="job-content" style={{ maxWidth: '100%' }}>
-                  <Text name="name" id="job-name" label="Job Name" onNameChange={props.sync_job_name} />
-                  <Picker 
-                    name="location" 
-                    label="Location" 
-                    localLabel="Change" 
-                    defaultLocation={props.runLocation} 
-                  />
                   <Select
                     key="env_select"
                     name="runtime"

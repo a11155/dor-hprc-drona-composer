@@ -9,7 +9,17 @@ from .utils import get_drona_dir
 
 class JobHistoryManager:
     def __init__(self):
-        base_dir = os.path.join(get_drona_dir(), 'jobs')
+        self.db_path = None
+        dd = get_drona_dir()
+        if not dd or not dd.get("ok"):
+            # no config yet
+            return
+            
+        drona_dir = dd.get("drona_dir")
+        if not drona_dir:
+            return
+
+        base_dir = os.path.join(drona_dir, "jobs")
         try:
             Path(base_dir).mkdir(parents=True, exist_ok=True)
             self.db_path = os.path.join(base_dir, 'job_history.db')

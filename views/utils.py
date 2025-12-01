@@ -3,7 +3,6 @@ import os
 import json
 from .error_handler import APIError, handle_api_error
 from pathlib import Path
-from .path_utils import normalize_dir, expand
 from tempfile import NamedTemporaryFile
 import shutil
 

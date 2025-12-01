@@ -54,15 +54,19 @@ def submit_job_route():
         save_file(file, params.get('location'))
     
     engine = Engine()
-    env_dir = params.get('env_dir')
-    if not env_dir:
-        env_dir = get_envs_dir()
-        if not env_dir["ok"]:
-            return jsonify({"message": env_dir["reason"]}), 400
     
-    params['env_dir'] = env_dir["path"]
+    env_dir_form = params.get('env_dir')
+    if env_dir_form:
+        env_dir_path = env_dir_form
+    else:
+        eres = get_envs_dir()
+        if not eres["ok"]:
+            return jsonify({"message": eres["reason"]}), 400
+        env_dir_path = eres["path"]
+
+    params['env_dir'] = env_dir_path
+    
     engine.set_environment(params.get('runtime'), params.get('env_dir'))
-    # console.log(engine)
     bash_script_path = engine.generate_script(params)
     driver_script_path = engine.generate_driver_script(params)
     
@@ -101,7 +105,6 @@ def preview_job_route():
         params['name'] = 'unnamed'
     
     if not params.get('location') or params.get('location').strip() == '':
-        user = os.getenv('USER')
         rres = get_runs_dir()
         if not rres['ok']:
             return jsonify({"message": rres["reason"]}), 400
@@ -109,14 +112,18 @@ def preview_job_route():
     
     
     engine = Engine()
-    env_dir = params.get('env_dir')
+    env_dir_form = params.get('env_dir')
+    
+    if env_dir_form:
+        env_dir_path = env_dir_form
+    else:
+        eres = get_envs_dir()                   
+        if not eres["ok"]:
+            return jsonify({"message": eres["reason"]}), 400
+        env_dir_path = eres["path"]
 
-    if not env_dir:
-         env_dir = get_envs_dir()
-         if not env_dir["ok"]:
-            return jsonify({"message": env_dir["reason"]}), 400
 
-    params['env_dir'] = env_dir["path"]
+    params['env_dir'] = env_dir_path
     engine.set_environment(params.get('runtime'), params.get('env_dir'))
     preview_job = engine.preview_script(params)
 

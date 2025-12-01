@@ -90,7 +90,7 @@ def add_environment_route():
 
 
     try:
-        repo_manager.copy_environment_to_user(env, user_envs_path)
+        repo_manager.copy_environment_to_user(env, user_envs_dir)
         return jsonify({"status": "Success"})
     except ValueError as e:
         raise APIError(
