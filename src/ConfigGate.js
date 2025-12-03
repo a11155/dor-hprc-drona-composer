@@ -57,26 +57,26 @@ export default function ConfigGate() {
 
   return (
     <div className="alert alert-warning" style={{ marginBottom: 12 }}>
-      <div style={{ fontWeight: 600, marginBottom: 6 }}>Drona directory not set</div>
-      <div style={{ marginBottom: 8 }}>{reason}</div>
-      <Picker
-          name="dronaDirPicker"
-          label="Drona working directory"
-          localLabel="Browse Directories"
-          showFiles={false}
-          defaultLocation={currentDir || "$HOME"}
-          defaultPaths={{ Home: "$HOME", Scratch: "/scratch/user/$USER" }}
-          useHPCDefaultPaths={true}
-          onChange={(_, v) => {
-            // v is the selected path (string); hand it to the saver
-            handleDronaPathChange(_, v);
-          }}
-          index={0}
-        />
+    <div style={{ fontWeight: 600, marginBottom: 6 }}>Drona directory not set</div>
+    <div style={{ marginBottom: 8 }}>{reason}</div>
 
-      <small className="text-muted">
-        Pick the folder that will contain your Drona composer data (will create a folder called drona_composer inside chosen folder).
-      </small>
+    <div className="drona-dir-picker">
+      <Picker
+        name="dronaDirPicker"
+        label="Drona working directory"
+        localLabel="Browse Directories"
+        showFiles={false}
+        defaultLocation={""}
+        defaultPaths={{ Home: "/home/$USER", Scratch: "/scratch/user/$USER" }}
+        useHPCDefaultPaths={true}
+        onChange={(_, v) => handleDronaPathChange(_, v)}
+        index={0}
+      />
     </div>
-  );
+
+    <small className="text-muted">
+      Pick the folder that will contain your Drona composer data (will create a folder called drona_wfe inside chosen folder).
+    </small>
+  </div>
+);
 }
