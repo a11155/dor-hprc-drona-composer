@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from drona_db_retriever import _default_db_path
+from .drona_db_retriever import _default_db_path
 
 def _default_json_path(user: Optional[str]) -> Path:
     if not user:

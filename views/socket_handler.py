@@ -11,13 +11,12 @@ from datetime import datetime
 from flask import request, jsonify, Blueprint
 from views.utils import get_drona_dir
 
-
-# Directory for job communication
-JOBS_DIR = os.path.join('/var/www/ood/apps/dev/a11155/gateway/dor-hprc-drona-composer/active_jobs')
-
 def get_jobs_dir():
-    user = os.getenv('USER')
-    jobs_dir = os.path.join('/scratch/user', user, 'drona_composer', '.active_jobs')
+    drona_root = get_drona_dir()
+    if not drona_root["ok"]:
+        return jsonify({"message": drona_root["reason"]}), 400
+        
+    jobs_dir = os.path.join(drona_root['drona_dir'], '.active_jobs')
 
     if not os.path.exists(jobs_dir):
         os.makedirs(jobs_dir)
@@ -266,7 +265,10 @@ def start_job_route():
     drona_job_id = data.get('drona_job_id')
     job_location = data.get('job_location')
     runtime_dir = get_drona_dir()
-
+    if not runtime_dir["ok"]:
+        return jsonify({"message": runtime_dir["reason"]}), 400
+        
+    runtime_dir = runtime_dir['drona_dir']
     if not bash_cmd:
         return jsonify({'error': 'No bash_cmd provided'}), 400
 

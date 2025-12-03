@@ -10,6 +10,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import RequiredFieldsModal from "./RequiredFieldsModal";
 import { useJobSocket } from "./hooks/useJobSocket";
 import { validateRequiredFields } from "./schemaRendering/utils/fieldUtils";
+import ConfigGate from "./ConfigGate";
 
 
 function JobComposer({
@@ -102,7 +103,6 @@ function JobComposer({
       });
 
       formData.append("additional_files", JSON.stringify(additional_files));
-
       if (props.environment && props.environment.src) {
         formData.append("env_dir", props.environment.src);
       }
@@ -116,9 +116,14 @@ function JobComposer({
       return formData;
     }
   }
+  
 
   const handlePreview = () => {
     // Validate required fields before showing preview
+    if (!props.environment || !props.environment.env) {
+    setError("Please choose an environment before preview.");
+    return;
+    }
     if (props.composerRef?.current) {
       const currentFields = props.composerRef.current.getFields();
       const validation = validateRequiredFields(currentFields);
@@ -159,6 +164,10 @@ function JobComposer({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!props.environment || !props.environment.env) {
+    setError("Please choose an environment before submitting.");
+    return;
+    }
 
     // Block submission if job is already running
     if (isJobRunning) {
@@ -213,6 +222,9 @@ function JobComposer({
       <div className="card shadow" style={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
 
         <div className="card-body" style={{ overflowY: 'auto', flex: '1 1 auto' }}>
+
+	  <ConfigGate />
+          
           <form
             ref={formRef}
             className="form"

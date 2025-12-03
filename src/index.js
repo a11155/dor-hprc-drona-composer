@@ -65,9 +65,7 @@ export function App() {
   }, []);
 
   function sync_job_name(name, customRunLocation) {
-    // console.log(customRunLocation)
     const preferredLocation = customRunLocation || baseRunLocation;
-    // console.log("here is the run location " + baseRunLocation)
     setRunLocation(
       preferredLocation + "/" + name
     );
