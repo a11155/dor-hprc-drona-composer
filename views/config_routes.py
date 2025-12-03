@@ -8,26 +8,12 @@ from .utils import get_drona_config, probe_and_autofix_config, _write_config_jso
 
 def config_status():
     out = probe_and_autofix_config()
-
-    if not out.get("ok"):
-        return jsonify({"missing_config": True, "reason": out.get("reason", "Unknown Error")}), 200
-        
-    if out.get("missing_config"):
-        return jsonify({
-            "missing_config": True,
-            "reason": out.get("reason"),
-            "action": out.get("action"),  # "select_needed"
-        }), 200
-    
-        
-    resp = {
-        "missing_config": False,
-        "drona_dir": out.get("drona_dir"),
-    }
-    if out.get("notice"):
-        resp["notice"] = out["notice"]         # show a warning banner client-side
-        resp["action"] = out.get("action")     # "migrated"
-    return jsonify(resp), 200
+    if out.get("ok") and not out.get("missing_config"):
+        try:
+            maybe_migrate_legacy_history()
+        except Exception:
+            pass
+    return jsonify(out), 200
 
 def config_save():
     if not request.is_json:

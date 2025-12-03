@@ -4,6 +4,9 @@ import json
 from .error_handler import APIError, handle_api_error
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+
+from runtime_support.migrate_history import migrate as migrate_legacy_history
+
 import shutil
 
 CONFIG_DIR = Path.home() / ".drona"
@@ -33,6 +36,38 @@ def _read_config_json():
     except Exception as e:
         return {"ok": False, "reason": f"Failed to read config: {e}"}
         
+def _read_config_json():
+    if not CONFIG_FILE.exists():
+        return {"ok": False, "reason": f"Config file not found: {CONFIG_FILE}"}
+    try:
+        cfg = json.loads(CONFIG_FILE.read_text())
+        if not isinstance(cfg, dict):
+            return {"ok": False, "reason": "Config file must be a JSON object."}
+
+        dd = cfg.get("drona_dir", "")
+        if not isinstance(dd, str) or not dd.strip():
+            return {"ok": False, "reason": "Config missing 'drona_dir' key."}
+
+        # Keep the raw path for comparison (so we can distinguish drona_wfe vs drona_composer)
+        raw_path = Path(dd).expanduser()
+
+        resolved = raw_path.resolve()
+        if not resolved.exists() or not resolved.is_dir():
+            return {"ok": False, "reason": f"drona_dir does not exist: {resolved}"}
+
+        # IMPORTANT: return the raw path, not the resolved one
+        return {
+            "ok": True,
+            "cfg": cfg,
+            "drona_dir": str(raw_path),           # e.g. "/scratch/.../drona_wfe"
+            "drona_dir_resolved": str(resolved),  # e.g. "/scratch/.../drona_composer"
+        }
+    except json.JSONDecodeError:
+        return {"ok": False, "reason": "Config file is invalid JSON."}
+    except Exception as e:
+        return {"ok": False, "reason": f"Failed to read config: {e}"}
+
+        
 def _write_config_json_atomically(drona_dir_abs: str):
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     tmp = CONFIG_DIR / "config.tmp"
@@ -48,41 +83,61 @@ def _safe_rename(src: Path, dst: Path):
         
 def probe_and_autofix_config():
     """
-    Implements:
-    1) If ~/.drona/config.json valid -> ok
-    2) Else, if $SCRATCH/drona_composer exists -> create a symlink to drona_wfe, write to config.json, return warning
-    3) Else, -> ask user to select, we'll create <SELECTED>/drona_wfe
-    Returns a dict for frontend
+    1) If ~/.drona/config.json is valid:
+         - If it points at $SCRATCH/drona_composer, migrate to drona_wfe.
+         - If it points at $SCRATCH/drona_wfe (symlink), do nothing.
+         - Otherwise, just return ok.
+    2) Else, if $SCRATCH/drona_composer exists -> create a symlink to drona_wfe, write to config.json, return warning.
+    3) Else -> ask user to select, we'll create <SELECTED>/drona_wfe later.
     """
-    # 1) check that config is present and valid
-    r = _read_config_json()
-    if r.get("ok"):
-        return { "ok": True, "missing_config": False, "drona_dir": r["drona_dir"], "notice": None, "action": "ok" }
-    
-    # 2) if missing check for $SCRATCH/drona_composer will be removed later
     user = os.getenv("USER", "").strip()
     scratch_path = Path("/scratch/user") / user
-    if scratch_path.exists():
-        dc = scratch_path / "drona_composer"
-        if dc.exists() and dc.is_dir():
-            target = scratch_path / "drona_wfe"
-            try:
-                if target.exists():
-                    pass
-                else:
-                    os.symlink(dc, target) # Makes folder drona_wfe -> drona_composer, should it be the other way around? 
-                    
-                    # _safe_rename(dc, target)
+    dc = scratch_path / "drona_composer"
+    target = scratch_path / "drona_wfe"
 
+    # 1) Try existing config first
+    r = _read_config_json()
+    if r.get("ok"):
+        # IMPORTANT: don't resolve here, so we can distinguish the symlink path
+        cfg_path = Path(r["drona_dir"]).expanduser()
+
+        # Already pointing at drona_wfe → everything is good
+        if cfg_path == target:
+            return {
+                "ok": True,
+                "missing_config": False,
+                "drona_dir": str(cfg_path),
+                "notice": None,
+                "action": "ok",
+            }
+
+        # If it's pointing somewhere that is NOT the old drona_composer → also fine
+        if cfg_path != dc:
+            return {
+                "ok": True,
+                "missing_config": False,
+                "drona_dir": str(cfg_path),
+                "notice": None,
+                "action": "ok",
+            }
+
+        # At this point, cfg_path == dc → config still points at old drona_composer
+        if dc.exists():
+            try:
+                if not target.exists():
+                    os.symlink(dc, target)
                 _write_config_json_atomically(str(target))
-                # Make display a warning here (yellow)
-                return ( { "ok": True,
+                return {
+                    "ok": True,
                     "missing_config": False,
                     "drona_dir": str(target),
-                    "notice": f"Existing '{dc}' was renamed to '{target.name}'. Drona location updated.",
+                    "notice": (
+                        f"Existing config pointed at '{dc}'. Created symlink "
+                        f"'{target.name}' -> 'drona_composer' and updated Drona "
+                        f"location in ~/.drona/config.json."
+                    ),
                     "action": "migrated",
-                } )
-                
+                }
             except Exception as e:
                 return {
                     "ok": False,
@@ -90,13 +145,76 @@ def probe_and_autofix_config():
                     "reason": f"Failed to migrate {dc} -> {target}: {e}",
                     "action": "error",
                 }
-    # 3) user select
+
+        # Config points at dc, but dc no longer exists → fall through to select-needed
+
+    # 2) No valid config: check for old drona_composer to migrate
+    if scratch_path.exists() and dc.exists() and dc.is_dir():
+        try:
+            if not target.exists():
+                os.symlink(dc, target)
+            _write_config_json_atomically(str(target))
+            return {
+                "ok": True,
+                "missing_config": False,
+                "drona_dir": str(target),
+                "notice": (
+                    f"Found existing '{dc}'. Created symlink '{target.name}' -> "
+                    f"'drona_composer' and updated Drona location in ~/.drona/config.json."
+                ),
+                "action": "migrated",
+            }
+        except Exception as e:
+            return {
+                "ok": False,
+                "missing_config": True,
+                "reason": f"Failed to migrate {dc} -> {target}: {e}",
+                "action": "error",
+            }
+
+    # 3) No valid config, no drona_composer to migrate → user must choose a location
     return {
         "ok": True,
         "missing_config": True,
         "reason": "No config found and no $SCRATCH/drona_composer to migrate. Please choose a location.",
         "action": "select_needed",
     }
+
+    
+def maybe_migrate_legacy_history():
+    """
+    If a legacy $SCRATCH/drona_composer/jobs/{USER}_history.json exists
+    and we haven't migrated yet, run migrate_history.migrate() once.
+    """
+    user = (
+        os.environ.get("USER")
+    )
+
+    # Marker so we don't run this on every request
+    marker = CONFIG_DIR / "history_migrated"
+    if marker.exists():
+        return
+
+    scratch = os.environ.get("SCRATCH") or f"/scratch/user/{user}"
+    scratch = os.path.expanduser(os.path.expandvars(scratch))
+    json_path = Path(scratch) / "drona_composer" / "jobs" / f"{user}_history.json"
+
+    if not json_path.exists():
+        # nothing to migrate
+        return
+
+    try:
+        # Default behavior of migrate(): no args = use current user + default paths
+        migrate_legacy_history(user=None, json_path=None, db_path=None, overwrite=False, delete_json=False)
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text("ok\n")
+        logging.getLogger(__name__).info("Legacy Drona history migrated for user %s", user)
+    except FileNotFoundError:
+        # JSON vanished between check and run; just skip
+        return
+    except Exception as e:
+        logging.getLogger(__name__).warning("History migration failed for user %s: %s", user, e)
+
 
 def get_drona_config():
     """
