@@ -11,7 +11,6 @@ from datetime import datetime
 from flask import request, jsonify, Blueprint
 from views.utils import get_drona_dir
 
-
 def get_jobs_dir():
     drona_root = get_drona_dir()
     if not drona_root["ok"]:
@@ -23,9 +22,6 @@ def get_jobs_dir():
         os.makedirs(jobs_dir)
 
     return jobs_dir
-
-# Directory for job communication
-# JOBS_DIR = get_jobs_dir()
 
 # Python pty is necessary to handle things carriage returns
 def create_pty_wrapper_script(jobs_dir, bash_cmd, drona_job_id, job_location=None, runtime_dir=None):
