@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from "react";
 import Picker from "./schemaRendering/schemaElements/Picker";
+import ErrorAlert from "./ErrorAlert";
 
 export default function ConfigGate() {
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
   const [reason, setReason] = useState("");
   const [currentDir, setCurrentDir] = useState("");
+  const [notice, setNotice] = useState(null);
+    const [showNotice, setShowNotice] = useState(false);
+
 
   useEffect(() => {
     (async () => {
@@ -19,6 +23,10 @@ export default function ConfigGate() {
         }
         const r = await fetch(window.CONFIG_STATUS_URL, { credentials: "same-origin" });
         const j = await r.json();
+        if (j.action === "migrated" && j.notice) {
+            setNotice({ message: j.notice }); // For error alert
+            setShowNotice(true);
+        }
         if (j.missing_config) {
           setMissing(true);
           setReason(j.reason || "Configuration not found.");
@@ -52,31 +60,41 @@ export default function ConfigGate() {
         alert(out.message || out.error || `Save failed (${resp.status})`);
       }
     }
-
-  if (loading || !missing) return null;
+    
 
   return (
-    <div className="alert alert-warning" style={{ marginBottom: 12 }}>
-    <div style={{ fontWeight: 600, marginBottom: 6 }}>Drona directory not set</div>
-    <div style={{ marginBottom: 8 }}>{reason}</div>
-
-    <div className="drona-dir-picker">
-      <Picker
-        name="dronaDirPicker"
-        label="Drona working directory"
-        localLabel="Browse Directories"
-        showFiles={false}
-        defaultLocation={""}
-        defaultPaths={{ Home: "/home/$USER", Scratch: "/scratch/user/$USER" }}
-        useHPCDefaultPaths={true}
-        onChange={(_, v) => handleDronaPathChange(_, v)}
-        index={0}
+  <>
+    {showNotice && notice && (
+      <ErrorAlert
+        error={notice}
+        onClose={() => setShowNotice(false)}
       />
-    </div>
+    )}
 
-    <small className="text-muted">
-      Pick the folder that will contain your Drona composer data (will create a folder called drona_wfe inside chosen folder).
-    </small>
-  </div>
+    {loading || !missing ? null : (
+      <div className="alert alert-warning" style={{ marginBottom: 12 }}>
+        <div style={{ fontWeight: 600, marginBottom: 6 }}>Drona directory not set</div>
+        <div style={{ marginBottom: 8 }}>{reason}</div>
+
+        <div className="drona-dir-picker">
+          <Picker
+            name="dronaDirPicker"
+            label="Drona working directory"
+            localLabel="Browse Directories"
+            showFiles={false}
+            defaultLocation={""} // important: no "$HOME" here
+            defaultPaths={{ Home: "/home/$USER", Scratch: "/scratch/user/$USER" }}
+            useHPCDefaultPaths={true}
+            onChange={(_, v) => handleDronaPathChange(_, v)}
+            index={0}
+          />
+        </div>
+
+        <small className="text-muted">
+          Pick the folder that will contain your Drona composer data.
+        </small>
+      </div>
+    )}
+  </>
 );
 }
