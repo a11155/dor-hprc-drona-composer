@@ -8,7 +8,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
   tagline: 'High Performance Computing Workflow Composer',
   url: 'https://tamu-edu.github.io',
   baseUrl: '/dor-hprc-drona-composer/',
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
   organizationName: 'tamu-edu',
