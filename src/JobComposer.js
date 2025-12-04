@@ -69,6 +69,11 @@ function JobComposer({
         data["files"] = props.globalFiles;
       }
 
+      // Ensure drona_job_id is present for reruns (use existing job_id from history)
+      if (data["job_id"]) {
+        data["drona_job_id"] = data["job_id"];
+      }
+
       const formData = new FormData;
       for (const [key, value] of Object.entries(data)) {
         if (value instanceof File) {
@@ -111,6 +116,11 @@ function JobComposer({
         props.globalFiles.forEach((file) => {
           formData.append("files[]", file);
         });
+      }
+
+      // For new jobs, include drona_job_id from preview if available
+      if (props.dronaJobId) {
+        formData.append("drona_job_id", props.dronaJobId);
       }
 
       return formData;

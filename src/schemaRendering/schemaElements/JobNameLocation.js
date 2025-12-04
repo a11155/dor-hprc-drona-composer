@@ -55,7 +55,6 @@ export default function JobNameLocation({
                             <label htmlFor="job-name" style={{ whiteSpace: 'nowrap' }}>Job Name</label>
                             <Text
                                 name={"name"}
-                                id={"job-name"}
                                 label=""
                                 value={customJobName || ""}
                                 useLabel={false}              // suppress inner label; we render our own

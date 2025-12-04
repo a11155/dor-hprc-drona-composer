@@ -6,7 +6,7 @@ import threading
 import uuid
 from .logger import Logger
 from .history_manager import JobHistoryManager
-from .utils import create_folder_if_not_exist
+from .utils import create_folder_if_not_exist, get_drona_dir
 from machine_driver_scripts.engine import Engine
 from .file_utils import save_file
 
@@ -32,17 +32,28 @@ def submit_job_route():
     """HTTP endpoint for job submission"""
     files = request.files
     
-    # Generate job_id upfront
-    drona_job_id = str(int(uuid.uuid4().int & 0xFFFFFFFFF))
-    
     params = dict(request.form)
+
+    # Require a drona_job_id generated during preview
+    drona_job_id = (params.get('drona_job_id') or "").strip()
+    if not drona_job_id:
+        return jsonify({
+            'error': 'Missing drona_job_id. Please preview the job before submitting.'
+        }), 400
+
+    # Require a location computed during preview or rerun
+    location = (params.get('location') or "").strip()
+    if not location:
+        return jsonify({
+            'error': 'Missing location. Please preview the job before submitting.'
+        }), 400
+    params['location'] = location
+
+    # If no job name provided, default to drona_job_id
+    # (location is already computed during preview/rerun)
     if not params.get('name') or params.get('name').strip() == '':
-        params['name'] = 'unnamed'
-    
-    if not params.get('location') or params.get('location').strip() == '':
-        user = os.getenv('USER')
-        params['location'] = f"/scratch/user/{user}/drona_composer/runs"
-    
+        params['name'] = drona_job_id
+
     create_folder_if_not_exist(params.get('location'))
     
     extra_files = files.getlist('files[]')
@@ -85,17 +96,29 @@ def submit_job_route():
 def preview_job_route():
     """Preview a job script without submitting it"""
     params = dict(request.form)
-    
-    if not params.get('name') or params.get('name').strip() == '':
-        params['name'] = 'unnamed'
-    
+
+    # Generate drona_job_id so preview and submit can share a stable ID
+    drona_job_id = str(int(uuid.uuid4().int & 0xFFFFFFFFF))
+
+    # Ensure we always have a base location (same as submit_job_route)
     if not params.get('location') or params.get('location').strip() == '':
-        user = os.getenv('USER')
-        params['location'] = f"/scratch/user/{user}/drona_composer/runs"
+        params['location'] = os.path.join(get_drona_dir(), 'runs')
+
+    # If no job name provided, default to drona_job_id and
+    # scope the location to a per-job subdirectory based on that id
+    # (mirrors submit_job_route)
+    if not params.get('name') or params.get('name').strip() == '':
+        params['name'] = drona_job_id
+        params['location'] = os.path.join(params['location'], drona_job_id)
     
     engine = Engine()
     engine.set_environment(params.get('runtime'), params.get('env_dir'))
     preview_job = engine.preview_script(params)
+
+    # Attach drona_job_id and effective location so the client
+    # can reuse them on submit without recomputing
+    preview_job['drona_job_id'] = drona_job_id
+    preview_job['location'] = params.get('location')
 
     return jsonify(preview_job)
 

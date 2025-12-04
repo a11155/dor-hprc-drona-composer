@@ -42,6 +42,8 @@ export function App() {
   );
   const [baseRunLocation, setBaseRunLocation] = useState(defaultRunLocation)
 
+  // Track drona_job_id returned from preview so submit can reuse it
+  const [dronaJobId, setDronaJobId] = useState(null);
 
   const [environments, setEnvironments] = useState([]);
   const [error, setError] = useState(null);
@@ -251,6 +253,15 @@ export function App() {
         }
       } else {
 
+        // Capture drona_job_id from preview if provided
+        setDronaJobId(jobScript["drona_job_id"] || null);
+
+        // Sync run location to the effective location used in preview,
+        // so submit sees the same directory (including drona_job_id)
+        if (jobScript["location"]) {
+          setRunLocation(jobScript["location"]);
+        }
+
         // Not sure if this has any effect
         setJobScript(jobScript["script"]);
 
@@ -352,6 +363,7 @@ export function App() {
           showSplitScreenModal={showSplitScreenModal}
           setShowSplitScreenModal={setShowSplitScreenModal}
           setBaseRunLocation={setBaseRunLocation}
+          dronaJobId={dronaJobId}
         />
         {showRerunModal && (
           <RerunPromptModal
