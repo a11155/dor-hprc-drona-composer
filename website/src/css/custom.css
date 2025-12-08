@@ -19,11 +19,11 @@
   --tamu-maroon: #500000;
   --tamu-white: #ffffff;
   --tamu-black: #000000;
-  --tamu-navy: #2F3E51;
+  --tamu-navy: #2F3E51; 
   --tamu-gray: #707070;
   --tamu-tan: #D6D2C4;
   --tamu-light-gray: #F6F6F6;
-  --tamu-yellow: #FCE300;
+  --tamu-gellow: #FCE300;
   --tamu-light-blue: #AEB7CF;
 
   /* Enhanced Typography */
@@ -71,7 +71,7 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
 .navbar {
   background: var(--tamu-maroon) !important;
   box-shadow: var(--ifm-global-shadow-md);
-  border-bottom: 3px solid var(--tamu-light-blue);
+  #border-bottom: 3px solid var(--tamu-t-gray);
 }
 
 .navbar__brand {
@@ -97,12 +97,12 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
 }
 
 .navbar__item .navbar__link:hover {
-  color: var(--tamu-light-blue) !important;
+  color: var(--tamu-light-gray) !important;
   text-decoration: none;
 }
 
 .navbar__item .navbar__link--active {
-  color: var(--tamu-light-blue) !important;
+  color: var(--tamu-light-gray) !important;
 }
 
 .navbar__link {
@@ -115,7 +115,7 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
 
 .dropdown__menu {
   background-color: var(--tamu-maroon) !important;
-  border: 1px solid var(--tamu-light-blue);
+  border: 1px solid var(--tamu-light-gray);
 }
 
 .dropdown__link {
@@ -124,12 +124,12 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
 
 .dropdown__link:hover {
   background-color: rgba(0, 102, 204, 0.1) !important;
-  color: var(--tamu-light-blue) !important;
+  color: var(--tamu-light-gray) !important;
 }
 
 /* Hero Section - Professional TAMU Styling */
 .hero {
-  background: linear-gradient(135deg, var(--tamu-maroon) 0%, var(--tamu-navy) 100%);
+  background: linear-gradient(135deg, var(--tamu-maroon) 0%, var(--tamu-navy) 150%);
   color: var(--tamu-white);
   padding: 4rem 2rem;
   text-align: center;
@@ -301,12 +301,12 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
 
 /* Footer - HPRC Professional */
 .footer--dark {
-  background: linear-gradient(135deg, var(--tamu-maroon) 0%, var(--tamu-navy) 100%);
-  border-top: 3px solid var(--tamu-light-blue);
+  background: linear-gradient(135deg, var(--tamu-maroon) 0%, var(--tamu-navy) 150%);
+  border-top: 3px solid var(--tamu-light-gray);
 }
 
 .footer__title {
-  color: var(--tamu-light-blue);
+  color: var(--tamu-light-gray);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;

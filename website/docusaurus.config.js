@@ -4,13 +4,13 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 // With JSDoc @type annotations, IDEs can provide config autocompletion
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
 (module.exports = {
-  title: 'Drona Composer Documentation',
-  tagline: 'High Performance Computing Workflow Composer',
+  title: 'Drona Workflow Engine',
+  tagline: 'High Performance Computing Workflow Composer Documentation',
   url: 'https://tamu-edu.github.io',
   baseUrl: '/dor-hprc-drona-composer/',
   onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/hprc_tungsten.png',
   organizationName: 'tamu-edu',
   projectName: 'dor-hprc-drona-composer',
   deploymentBranch: 'master',
@@ -51,7 +51,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
         title: 'Drona Composer',
         logo: {
           alt: 'Texas A&M University Logo',
-          src: 'img/tamu-logo.svg',
+          src: 'img/tamu-icon.png',
         },
         items: [
           {
@@ -142,7 +142,11 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Texas A&M University. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Texas A&M University.`,
+      },
+      // Disable dark mode toggle button
+      colorMode: {
+        disableSwitch: true,
       },
       prism: {
         theme: lightCodeTheme,

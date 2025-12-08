@@ -12,12 +12,21 @@ type FeatureItem = {
   title: string;
   image: string;
   description: JSX.Element;
+  imageStyle?: React.CSSProperties; // Add this line
 };
 
 const FeatureList: FeatureItem[] = [
   {
     title: 'Intuitive Workflow Creation',
-    image: '/img/undraw_docusaurus_mountain.svg',
+    image: 'img/drona1.png',
+    imageStyle: {
+      objectFit: 'cover',
+      objectPosition: 'center' ,
+
+      height: '185px',
+      width: "200px",
+
+    },
     description: (
       <>
         Drona provides a user-friendly GUI that guides researchers through configuring HPC workflows, eliminating the steep learning curve and allowing you to focus on your research.
@@ -26,7 +35,16 @@ const FeatureList: FeatureItem[] = [
   },
   {
     title: 'Full Transparency and Control',
-    image: '/img/undraw_docusaurus_tree.svg',
+    image: 'img/drona2.png',
+    imageStyle: {
+      objectFit: 'cover',
+      objectPosition: 'center bottom' ,
+      marginBottom: '10px',
+
+      height: '175px',
+      width: "320px",
+
+    },
     description: (
       <>
         Review and edit all generated scripts in an interactive preview window before submission, ensuring complete visibility and control over your scientific workflows.
@@ -35,7 +53,15 @@ const FeatureList: FeatureItem[] = [
   },
   {
     title: 'Extensible Framework',
-    image: '/img/undraw_docusaurus_react.svg',
+    image: 'img/drona3.png',
+    imageStyle: {
+      objectFit: 'cover',
+      objectPosition: 'center' ,
+
+      height: '185px',
+      width: "200px",
+
+    },
     description: (
       <>
         Create, customize, and share scientific workflows using Drona&apos;s flexible framework, enabling collaboration and workflow reuse across your research community.
@@ -44,11 +70,16 @@ const FeatureList: FeatureItem[] = [
   },
 ];
 
-function Feature({title, image, description}: FeatureItem) {
+function Feature({title, image, description, imageStyle}: FeatureItem) {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
-        <img className={styles.featureSvg} alt={title} src={image} />
+        <img 
+          className={styles.featureSvg} 
+          alt={title} 
+          src={image}
+          style={imageStyle} // Add this line
+        />
       </div>
       <div className="text--center padding-horiz--md">
         <h3>{title}</h3>
