@@ -34,6 +34,7 @@ def submit_job_route():
     
     params = dict(request.form)
 
+
     # Require a drona_job_id generated during preview
     drona_job_id = (params.get('drona_job_id') or "").strip()
     if not drona_job_id:
@@ -54,6 +55,7 @@ def submit_job_route():
     if not params.get('name') or params.get('name').strip() == '':
         params['name'] = drona_job_id
 
+
     create_folder_if_not_exist(params.get('location'))
     
     extra_files = files.getlist('files[]')
@@ -62,7 +64,6 @@ def submit_job_route():
     
     engine = Engine()
     engine.set_environment(params.get('runtime'), params.get('env_dir'))
-    # console.log(engine)
     bash_script_path = engine.generate_script(params)
     driver_script_path = engine.generate_driver_script(params)
     
@@ -82,10 +83,10 @@ def submit_job_route():
     )
 
     # Handle case where save_job returns False on error
-    if isinstance(job_record, dict) and 'job_id' in job_record:
-        print(f"[WARN] save_job() failed or returned invalid record for job {drona_job_id}")
-        # Fall back to the generated ID
+    if not job_record:
+        # Fall back to the generated ID so the route still responds
         job_record = {'job_id': drona_job_id}
+
     
     return jsonify({
             'bash_cmd': bash_cmd,
@@ -97,19 +98,29 @@ def preview_job_route():
     """Preview a job script without submitting it"""
     params = dict(request.form)
 
-    # Generate drona_job_id so preview and submit can share a stable ID
-    drona_job_id = str(int(uuid.uuid4().int & 0xFFFFFFFFF))
+    # Reuse existing drona_job_id if provided, otherwise generate a new one
+    existing_id = (params.get('drona_job_id') or "").strip()
+    if existing_id:
+        drona_job_id = existing_id
+    else:
+        drona_job_id = str(int(uuid.uuid4().int & 0xFFFFFFFFF))
 
     # Ensure we always have a base location (same as submit_job_route)
-    if not params.get('location') or params.get('location').strip() == '':
-        params['location'] = os.path.join(get_drona_dir(), 'runs')
+    location = (params.get('location') or "").strip()
+    if not location:
+        location = os.path.join(get_drona_dir(), 'runs')
 
-    # If no job name provided, default to drona_job_id and
-    # scope the location to a per-job subdirectory based on that id
-    # (mirrors submit_job_route)
-    if not params.get('name') or params.get('name').strip() == '':
+    unnamed = (not params.get('name') or params.get('name').strip() == '')
+
+    # For unnamed jobs, always use drona_job_id as the name
+    if unnamed:
         params['name'] = drona_job_id
-        params['location'] = os.path.join(params['location'], drona_job_id)
+        # For the location, append drona_job_id only if it's not already
+        # the last path component to avoid repeated nesting on multiple previews
+        if os.path.basename(location) != drona_job_id:
+            location = os.path.join(location, drona_job_id)
+
+    params['location'] = location
     
     engine = Engine()
     engine.set_environment(params.get('runtime'), params.get('env_dir'))
@@ -119,6 +130,8 @@ def preview_job_route():
     # can reuse them on submit without recomputing
     preview_job['drona_job_id'] = drona_job_id
     preview_job['location'] = params.get('location')
+
+    print("[PREVIEW_JOB]", preview_job)
 
     return jsonify(preview_job)
 

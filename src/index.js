@@ -232,6 +232,12 @@ export function App() {
     setJobStatus("new");
     const formData = new FormData(formRef.current);
 
+    // If we already have a drona_job_id from a previous preview,
+    // send it so the backend can reuse it instead of generating a new one
+    if (dronaJobId) {
+      formData.append("drona_job_id", dronaJobId);
+    }
+
     if (!formData.has("runtime")) {
       alert("Environment is required.");
       return;
