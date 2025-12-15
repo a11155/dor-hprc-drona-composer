@@ -4,7 +4,7 @@ export const normalizeFields = (fields) => {
   return Object.entries(fields).map(([name, field]) => ({
     name,
     ...field,
-    isVisible: !field.condition, // Default visible if no condition
+    isVisible: field.isVisible || !field.condition,
     value: field.type === "checkbox" ? (field.checked ? field.value : "") : (field.value || ""),
     // Recursively normalize nested elements in rowContainer
     elements: Containers.includes(field.type) && field.elements 
@@ -75,12 +75,16 @@ export const getAllFields = (fields) => {
   fields.forEach(field => {
     if (!field) return;
 
+
+	if (field.isVisible === false) return; 
+
     allFields.push(field);
 
     if (field.elements) {
       const nestedFields = getAllFields(field.elements);
       allFields.push(...nestedFields);
     }
+
   });
 
   return allFields;
@@ -91,6 +95,7 @@ export const validateRequiredFields = (fields) => {
   const allFields = getAllFields(fields);
 
   const missingFields = allFields.filter(field => {
+    
     if (!field.required) return false;
     if (field.isVisible === false) return false;
 

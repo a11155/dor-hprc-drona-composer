@@ -5,7 +5,9 @@ import jsonref
 import subprocess
 import traceback
 from .error_handler import APIError, handle_api_error
+from copy import deepcopy
 from .utils import get_envs_dir
+
 def iterate_schema(schema_dict):
     """Generator that yields all elements in the schema including nested ones"""
     for key, value in schema_dict.items():
@@ -120,6 +122,20 @@ def execute_script(
             }
         )
 
+def convert_jsonref_to_dict(obj):
+    """
+    Convert JsonRef proxy objects to regular Python objects recursively.
+    """
+    if hasattr(obj, '__iter__') and hasattr(obj, 'keys'):
+        # It's a dict-like object (including JsonRef)
+        return {key: convert_jsonref_to_dict(value) for key, value in obj.items()}
+    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes)):
+        # It's a list-like object
+        return [convert_jsonref_to_dict(item) for item in obj]
+    else:
+        # It's a primitive value
+        return obj
+
 @handle_api_error
 def get_schema_route(environment):
     """Get schema.json for a specific environment"""
@@ -147,7 +163,10 @@ def get_schema_route(environment):
     try:
         abs_path = os.path.abspath(base_path)
         base_uri = f'file:///{abs_path.lstrip("/").replace(os.sep, "/")}/'
-        schema_dict = jsonref.loads(schema_data, base_uri=base_uri, proxies=False)
+        jsonref_result = jsonref.loads(schema_data, base_uri=base_uri, proxies=True)
+        
+        schema_dict = convert_jsonref_to_dict(jsonref_result)
+        
     except json.JSONDecodeError as e:
         raise APIError("Invalid schema JSON", status_code=400, details={'error': str(e)})
 

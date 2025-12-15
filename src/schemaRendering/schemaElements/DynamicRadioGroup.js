@@ -1,8 +1,38 @@
 /**
  * @name DynamicRadioGroup
- * @description A radio group that dynamically loads its options from a retriever.
- * Mirrors DynamicCheckboxGroup behavior: warns if the prior selection disappears
- * after a refresh; user choosing a new option clears the warning.
+ * @description A radio button group that dynamically loads its options from a retriever script.
+ * Allows single selection and automatically refreshes options when dependent form values change.
+ * Warns when the previously selected option becomes unavailable after options refresh.
+ *
+ * @example
+ * // Basic dynamic radio group
+ * {
+ *   "type": "dynamicRadioGroup",
+ *   "name": "cluster",
+ *   "label": "Available Clusters",
+ *   "retriever": "retrievers/clusters_list.sh",
+ *   "value": "cluster1",
+ *   "help": "Select a cluster (options loaded dynamically)"
+ * }
+ *
+ * @example
+ * // Dynamic radio group with parameters from form values
+ * {
+ *   "type": "dynamicRadioGroup",
+ *   "name": "nodeType",
+ *   "label": "Node Type",
+ *   "retriever": "retrievers/node_types_by_cluster.sh",
+ *   "retrieverParams": { "cluster": "$cluster", "availability": "high" },
+ *   "help": "Available node types update based on selected cluster"
+ * }
+ *
+ * @property {string} name - Input field name, used for form submission
+ * @property {string} [label] - Display label for the field
+ * @property {string} retriever - Path to the script that retrieves radio button options
+ * @property {Object} [retrieverParams] - Parameters passed to the retriever script, values with $ prefix are replaced with form values
+ * @property {string} [value] - Default/initial selected value
+ * @property {Array} [options] - Initial options array, overridden by retriever results
+ * @property {string} [help] - Help text displayed below the radio buttons
  */
 
 import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from "react";
