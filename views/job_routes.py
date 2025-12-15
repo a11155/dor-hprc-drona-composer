@@ -9,6 +9,7 @@ from .history_manager import JobHistoryManager
 from .utils import create_folder_if_not_exist
 from machine_driver_scripts.engine import Engine
 from .file_utils import save_file
+from .utils import get_runs_dir, get_envs_dir
 
 logger = Logger()
 socketio = None  # Will be initialized when passed from main app
@@ -27,11 +28,13 @@ def extract_job_id(submit_response):
     },
     format_string="{timestamp} {user} {env_dir}/{env} {job_name}"
 )
+
 def submit_job_route():
     """HTTP endpoint for job submission"""
     files = request.files
     
-    job_id = str(int(uuid.uuid4().int & 0xFFFFFFFFF))
+    # Generate job_id upfront
+    drona_job_id = str(int(uuid.uuid4().int & 0xFFFFFFFFF))
     
     params = dict(request.form)
     if not params.get('name') or params.get('name').strip() == '':
@@ -39,7 +42,10 @@ def submit_job_route():
     
     if not params.get('location') or params.get('location').strip() == '':
         user = os.getenv('USER')
-        params['location'] = f"/scratch/user/{user}/drona_composer/runs"
+        rres = get_runs_dir()
+        if not rres['ok']:
+            return jsonify({"message": rres["reason"]}), 400
+        params['location'] = rres["path"]
     
     create_folder_if_not_exist(params.get('location'))
     
@@ -48,6 +54,18 @@ def submit_job_route():
         save_file(file, params.get('location'))
     
     engine = Engine()
+    
+    env_dir_form = params.get('env_dir')
+    if env_dir_form:
+        env_dir_path = env_dir_form
+    else:
+        eres = get_envs_dir()
+        if not eres["ok"]:
+            return jsonify({"message": eres["reason"]}), 400
+        env_dir_path = eres["path"]
+
+    params['env_dir'] = env_dir_path
+    
     engine.set_environment(params.get('runtime'), params.get('env_dir'))
     bash_script_path = engine.generate_script(params)
     driver_script_path = engine.generate_driver_script(params)
@@ -56,6 +74,7 @@ def submit_job_route():
 
     history_manager = JobHistoryManager()
 
+    # Pass job_id to save_job
     job_record = history_manager.save_job(
         params,
         files,
@@ -63,19 +82,19 @@ def submit_job_route():
             "bash_script":   bash_script_path,
             "driver_script": driver_script_path
         },
-        job_id=job_id
+        job_id=drona_job_id
     )
 
     # Handle case where save_job returns False on error
     if isinstance(job_record, dict) and 'job_id' in job_record:
-        return jsonify({
+        print(f"[WARN] save_job() failed or returned invalid record for job {drona_job_id}")
+        # Fall back to the generated ID
+        job_record = {'job_id': drona_job_id}
+    
+    return jsonify({
             'bash_cmd': bash_cmd,
-            'drona_job_id': job_record['job_id']
-        })
-    else:
-        # If save_job failed, still return bash_cmd but without drona_job_id
-        return jsonify({
-            'bash_cmd': bash_cmd
+            'drona_job_id': job_record['job_id'],
+            'location' : params.get('location')
         })
 
 def preview_job_route():
@@ -86,10 +105,25 @@ def preview_job_route():
         params['name'] = 'unnamed'
     
     if not params.get('location') or params.get('location').strip() == '':
-        user = os.getenv('USER')
-        params['location'] = f"/scratch/user/{user}/drona_composer/runs"
+        rres = get_runs_dir()
+        if not rres['ok']:
+            return jsonify({"message": rres["reason"]}), 400
+        params['location'] = rres["path"]
+    
     
     engine = Engine()
+    env_dir_form = params.get('env_dir')
+    
+    if env_dir_form:
+        env_dir_path = env_dir_form
+    else:
+        eres = get_envs_dir()                   
+        if not eres["ok"]:
+            return jsonify({"message": eres["reason"]}), 400
+        env_dir_path = eres["path"]
+
+
+    params['env_dir'] = env_dir_path
     engine.set_environment(params.get('runtime'), params.get('env_dir'))
     preview_job = engine.preview_script(params)
 
@@ -107,7 +141,7 @@ def get_job_from_history_route(job_id):
     job_data = history_manager.get_job(job_id)
 
     if not job_data:
-        return "Job not found", 404
+        return jsonify({'error': 'Job not found'}), 404
 
     return jsonify(job_data)
 

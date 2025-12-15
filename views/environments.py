@@ -2,7 +2,7 @@ from flask import request, jsonify, current_app as app
 import os
 import json
 from .error_handler import APIError, handle_api_error
-from .utils import create_folder_if_not_exist, get_drona_dir
+from .utils import create_folder_if_not_exist, get_drona_dir, get_envs_dir
 from .env_repo_manager import EnvironmentRepoManager
 
 
@@ -18,10 +18,23 @@ def _get_environments():
         system_environments = [{"env": env, "src": "./environments", "is_user_env": False} for env in system_environments]
     except (PermissionError, FileNotFoundError, OSError):
         system_environments = []
+    
+    dd = get_drona_dir()
+    if not dd["ok"]:
+        return system_environments
+        #return jsonify({"message": dd["reason"]}), 400
+    drona_dir = dd["drona_dir"]
+
+    #if not drona_dir or not os.path.isdir(drona_dir):
+        # Config missing or invalid — prevent crash
+     #   return system_environments  # or [] if you prefer no envs at all
 
     user_envs_path = request.args.get("user_envs_path")
     if user_envs_path is None:
-        user_envs_path = os.path.join(get_drona_dir(), 'environments')
+        eres = get_envs_dir()
+        if not eres["ok"]:
+            return jsonify({"message": eres["reason"]}), 400
+        user_envs_path = eres["path"]
         try:
             create_folder_if_not_exist(user_envs_path)
         except (PermissionError, OSError):
@@ -70,10 +83,14 @@ def add_environment_route():
             repo_url=app.config['env_repo_github'],
             repo_dir="./environments-repo"
     )
-    user_envs_path = os.path.join(get_drona_dir(), 'environments')
+    eres = get_envs_dir()
+    if not eres["ok"]:
+        return jsonify({"message": eres["reason"]}), 400
+    user_envs_dir = eres["path"]
+
 
     try:
-        repo_manager.copy_environment_to_user(env, user_envs_path)
+        repo_manager.copy_environment_to_user(env, user_envs_dir)
         return jsonify({"status": "Success"})
     except ValueError as e:
         raise APIError(

@@ -28,7 +28,12 @@ def load_config(config_file='config.yml'):
 config = load_config()['development'] if env == 'development' else load_config()['production']
 app.config.update(config)
 app.config['user'] = os.environ['USER']
-app.config['drona_dir'] = get_drona_dir()
+
+dd = get_drona_dir()    
+if dd["ok"]:
+    app.config['drona_dir'] = dd["drona_dir"]
+else:
+    app.config["drona_dir"] = None
 
 app.register_blueprint(job_composer, url_prefix="/jobs/composer")
 
