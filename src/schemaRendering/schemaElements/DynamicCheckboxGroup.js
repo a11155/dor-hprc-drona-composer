@@ -1,8 +1,38 @@
 /**
  * @name DynamicCheckboxGroup
- * @description A checkbox group that dynamically loads its options from a retriever.
- * Mirrors DynamicSelect/RadioGroup behavior, warns if prior selections disappear,
- * and PRUNES invalid selections on any user interaction.
+ * @description A checkbox group that dynamically loads its options from a retriever script.
+ * Allows multiple selections and automatically refreshes options when dependent form values change.
+ * Warns when previously selected options become unavailable and removes invalid selections on user interaction.
+ *
+ * @example
+ * // Basic dynamic checkbox group
+ * {
+ *   "type": "dynamicCheckboxGroup",
+ *   "name": "selectedModules",
+ *   "label": "Available Modules",
+ *   "retriever": "retrievers/modules_list.sh",
+ *   "value": ["module1", "module2"],
+ *   "help": "Select one or more modules (options loaded dynamically)"
+ * }
+ *
+ * @example
+ * // Dynamic checkbox group with parameters from form values
+ * {
+ *   "type": "dynamicCheckboxGroup",
+ *   "name": "permissions",
+ *   "label": "User Permissions",
+ *   "retriever": "retrievers/permissions_by_role.sh",
+ *   "retrieverParams": { "role": "$userRole", "environment": "production" },
+ *   "help": "Permissions update based on selected role"
+ * }
+ *
+ * @property {string} name - Input field name, used for form submission
+ * @property {string} [label] - Display label for the field
+ * @property {string} retriever - Path to the script that retrieves checkbox options
+ * @property {Object} [retrieverParams] - Parameters passed to the retriever script, values with $ prefix are replaced with form values
+ * @property {Array} [value] - Default/initial selected values (array of value strings)
+ * @property {Array} [options] - Initial options array, overridden by retriever results
+ * @property {string} [help] - Help text displayed below the checkboxes
  */
 
 import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from "react";

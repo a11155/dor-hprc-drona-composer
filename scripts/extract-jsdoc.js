@@ -355,6 +355,45 @@ sidebar_position: 2
 
 Documentation for all form components in the Drona Composer system. Components are used in JSON schema files by specifying the appropriate \`type\` field.
 
+## Common Properties
+
+All form components share a set of standard properties that control basic behavior, display, and validation:
+
+### Required Properties
+- **\`type\`** (string) - Determines which component to render (e.g., "text", "select", "checkbox")
+- **\`name\`** (string) - Field identifier used for form submission and value storage
+
+### Standard Properties
+- **\`label\`** (string, optional) - Display label for the field
+- **\`help\`** (string, optional) - Help text displayed below the field
+- **\`value\`** (any, optional) - Default or initial value for the field
+
+### Layout Properties
+- **\`labelOnTop\`** (boolean, optional) - When true, positions label above the input instead of beside it
+
+### Conditional Display
+- **\`isVisible\`** (boolean, optional) - Controls whether the field is displayed (evaluated before rendering)
+- **\`condition\`** (object, optional) - Conditional expression object that determines field visibility based on other field values
+
+### Example with Common Properties
+\`\`\`json
+{
+  "type": "text",
+  "name": "username",
+  "label": "User Name",
+  "value": "john_doe",
+  "help": "Enter your username",
+  "labelOnTop": true,
+  "isVisible": true
+}
+\`\`\`
+
+---
+
+## Component Reference
+
+Each component below supports all common properties listed above, plus component-specific properties.
+
 `;
 
   console.log('Extracting JSDoc from form components...');
