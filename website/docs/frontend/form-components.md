@@ -2,12 +2,9 @@
 sidebar_position: 2
 ---
 
-
 # Form Components
 
-This section documents all available form components in the Drona Composer schema rendering system. Each component is designed to be used within the JSON schema structure and provides specific form input functionality.
-
-*This documentation is automatically generated from JSDoc comments in the source code and includes live interactive demos.*
+Documentation for all form components in the Drona Composer system. Components are used in JSON schema files by specifying the appropriate `type` field.
 
 ## AutocompleteSelect
 
@@ -151,6 +148,46 @@ A dropdown select component that dynamically loads its options from a retriever 
 ```
 
 *Source: `src/schemaRendering/schemaElements/DynamicSelect.js`*
+
+---
+
+## Hidden
+
+Executes dynamic scripts without any visual output. Takes no space and displays nothing, but can execute retriever scripts in the background for side effects.
+
+### Properties
+- `name - Component name (required but not visible)` (string) - 
+- `value` (string, optional) - Static value (used when no retriever is specified)
+- `retriever` (string, optional) - Path to the script file to execute (for dynamic execution)
+- `retrieverParams` (Object, optional) - Parameters passed to the script as environment variables
+- `refreshInterval` (number, optional) - Auto-execution interval in seconds
+- `setError` (function, optional) - Function to handle errors during script execution
+
+### Examples
+#### Example 1
+```json
+// Execute a script when form values change
+{
+"type": "hidden",
+"name": "backgroundProcess",
+"retriever": "retrievers/update_location.sh",
+"retrieverParams": { "jobName": "$name" },
+"refreshInterval": 5
+}
+```
+
+#### Example 2
+```json
+// Static value execution (no dynamic script)
+{
+"type": "hidden",
+"name": "staticAction",
+"value": "some_static_value"
+}
+/
+```
+
+*Source: `src/schemaRendering/schemaElements/Hidden.js`*
 
 ---
 
@@ -586,18 +623,3 @@ A file and directory uploader component that allows users to select and upload i
 ---
 
 
-## Form Validation
-
-All form components support standard HTML5 validation attributes and provide visual feedback for validation errors. Components integrate with the FormElementWrapper to provide consistent styling and error display.
-
-## Custom Styling
-
-All components use Bootstrap CSS classes by default and can be styled using the `form-control` class. Custom styling can be applied through CSS or by modifying the component's styling props.
-
-## Integration
-
-These components are automatically registered and can be used in schema JSON files by specifying the appropriate `type` field. The schema renderer will automatically instantiate the correct component based on the type.
-
----
-
-*Last updated: 2025-12-01*
