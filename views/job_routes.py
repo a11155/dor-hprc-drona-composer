@@ -131,7 +131,7 @@ def preview_job_route():
     preview_job['drona_job_id'] = drona_job_id
     preview_job['location'] = params.get('location')
 
-    print("[PREVIEW_JOB]", preview_job)
+    # print("[PREVIEW_JOB]", preview_job)
 
     return jsonify(preview_job)
 

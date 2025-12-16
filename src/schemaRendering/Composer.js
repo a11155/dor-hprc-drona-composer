@@ -22,6 +22,13 @@ const Composer = forwardRef((props, ref) => {
   useEffect(() => {
     if (!props.fields) return;
 
+    // console.log("FIELDS: ");
+    // console.log(props.fields);
+
+    //Initial setup of the environment so user did not choose any location, reset the flag
+    props.setLocationPickedByUser?.(false);
+    // console.log("INITIAL STATE: " + props.locationPickedByUser)
+
     const normalizedFields = normalizeFields(props.fields);
 
     // If we have a pending dictionary update
@@ -78,8 +85,21 @@ const Composer = forwardRef((props, ref) => {
     }
   }, [props.fields, props.setError]);
 
+  useEffect(() => {
+    console.log("locationPickedByUser changed ->", props.locationPickedByUser);
+  }, [props.locationPickedByUser]);
+
+
   // Handle value changes
   const handleValueChange = (fieldName, value) => {
+
+    // If user choose the location themselves, mark as user-picked
+    // console.log("Change location:" + fieldName + " values: " + value);
+    if (fieldName === "location") {
+      props.setLocationPickedByUser?.(true);
+    }
+
+
     setFields(prevFields => {
       try {
         const updatedFields = updateFieldValue(prevFields, fieldName, value);
@@ -140,10 +160,10 @@ const Composer = forwardRef((props, ref) => {
       return processed;
     });
 
-  return { fields: newFields, hasChanged };
-};
-	//
-	//
+    return { fields: newFields, hasChanged };
+  };
+  //
+  //
   // Expose setValues method and getFields method
   useImperativeHandle(ref, () => ({
     setValues: (dictionary) => {

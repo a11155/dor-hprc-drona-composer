@@ -1,90 +1,107 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useContext } from "react";
 import FormElementWrapper from "../utils/FormElementWrapper";
 import Text from "../schemaElements/Text";
 import Picker from "../schemaElements/Picker";
+import { FormValuesContext } from "../FormValuesContext";
 
-/**
- * JobNameLocation: composite control for job "name" + "location"
- * Writes to engine keys: "name" and "location"
- */
-export default function JobNameLocation({
-    // schema-configurable
-    showName = true,
-    showLocation = true,
-    disableJobNameChange,
-    disableJobLocationChange,
-    help,
-    labelOnTop = true,
-    customJobName,
-    customJobLocation,
-    label,
-    pickerLabel = "Change",
+export default function JobNameLocation(props) {
+    const { updateValue } = useContext(FormValuesContext);
 
-    // pass-through from Composer/FieldRenderer
-    sync_job_name,          // e.g., props.sync_job_name
-    runLocation,       // e.g., props.runLocation
-    setRunLocation,
-    setBaseRunLocation,
-    onChange,              // forwarded from FieldRenderer (handleValueChange wrapper)
-    ...rest
-}) {
+    // console.log("jobNameLocation elements:", props.elements);
 
 
+    // const nameField = props.elements?.jobName;       // should have name: "name"
+    // const locationField = props.elements?.jobLocation; // should have name: "location"
+
+    const elementsArr = Array.isArray(props.elements) ? props.elements : [];
+
+    const nameField = elementsArr.find(f => f?.name === "name");
+    const locationField = elementsArr.find(f => f?.name === "location");
+
+    const showName = props.showName ?? true;
+    const showLocation = props.showLocation ?? true;
+
+    // Use element.value if present, otherwise fall back to customJobName/customJobLocation
+    const initialName = (nameField?.value ?? "") || (props.customJobName ?? "");
+    const initialLocation = (locationField?.value ?? "") || (props.customJobLocation ?? "");
+
+    // Current values (what we render). If schema doesn't have values yet, show the initial defaults.
+    const nameValue = (nameField?.value ?? "") || initialName;
+    const locationValue = (locationField?.value ?? "") || initialLocation;
+
+    // Wrapper works whether child calls onChange(value) OR onChange(name, value)
+    const setField = (field, ...args) => {
+        const v = args.length === 2 ? args[1] : args[0];
+        if (!field?.name) return;
+        updateValue(field.name, v);
+    };
+
+    // On mount: mimic old behavior of initializing from customJobName/customJobLocation
     useEffect(() => {
-        if (customJobLocation) {
-            setRunLocation?.(customJobLocation);
-            // onChange?.("location", customJobLocation);
+        if (initialLocation) {
+            // keep external runLocation in sync (old behavior)
+            props.setRunLocation?.(initialLocation);
+            // write into form state so FormData has it even if user doesn't touch it
+            if (locationField?.name) updateValue(locationField.name, initialLocation);
         }
-        if (customJobName) {
-            sync_job_name?.(customJobName, customJobLocation);
-            // onChange?.("name", customJobName);
+
+        if (initialName) {
+            // old behavior: sync_job_name hook
+            props.sync_job_name?.(initialName, initialLocation);
+            // write into form state
+            if (nameField?.name) updateValue(nameField.name, initialName);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
         <FormElementWrapper
-            labelOnTop={labelOnTop}
-            name={"name_location"}
-            label={label}
-            help={help}
+            labelOnTop={props.labelOnTop ?? true}
+            name="runDestination"
+            label={props.label}
+            help={props.help}
         >
-            <div className="form-group">
-                <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-                    {showName && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                            <label htmlFor="job-name" style={{ whiteSpace: 'nowrap' }}>Job Name</label>
-                            <Text
-                                name={"name"}
-                                label=""
-                                value={customJobName || ""}
-                                useLabel={false}              // suppress inner label; we render our own
-                                onNameChange={sync_job_name}   // mirrors previous inline behavior
-                                onChange={onChange}
-                                placeholder="Drona ID"
-                                disableChange={disableJobNameChange}
+            <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap" }}>
+                {showName && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+                        <label style={{ whiteSpace: "nowrap" }}>Job Name</label>
+                        <Text
+                            // If you don't have elements yet, still render with name="name"
+                            {...(nameField || {})}
+                            name={nameField?.name || "name"}
+                            useLabel={false}
+                            value={nameValue || ""}              // if no customJobName -> blank
+                            placeholder="Name"
+                            disableChange={props.disableJobNameChange}
+                            onChange={(...args) => {
+                                setField({ name: nameField?.name || "name" }, ...args);
 
-                            />
-                        </div>
-                    )}
+                                // preserve old sync hook on change (but no path concatenation)
+                                const v = args.length === 2 ? args[1] : args[0];
+                                props.sync_job_name?.(v, locationValue);
+                            }}
+                        />
+                    </div>
+                )}
 
-                    {showLocation && (
-                        <div style={{ display: 'flex', flexGrow: 1, gap: '1.5rem' }}>
+                {showLocation && (
+                    <div style={{ flex: 1 }}>
+                        <Picker
+                            {...(locationField || {})}
+                            name={locationField?.name || "location"}
+                            useLabel={false}
+                            localLabel={(locationField && (locationField.pickerLabel || locationField.label)) || props.pickerLabel || "Set Location"}
 
-                            <div style={{ flex: 1 }}>
-                                <Picker
-                                    name={"location"}
-                                    useLabel={false}
-                                    localLabel={pickerLabel}
-                                    defaultLocation={runLocation}
-                                    onChange={onChange}          // keep renderer state/hooks consistent
-                                    setBaseRunLocation={setBaseRunLocation}
-                                    style={{ width: "100%", alignItems: "flex" }}
-                                    disableChange={disableJobLocationChange}
-                                />
-                            </div>
-                        </div>
-                    )}
-                </div>
+                            // Old behavior: if no customJobLocation, it used runLocation
+                            defaultLocation={locationValue || props.runLocation || ""}
+                            disableChange={props.disableJobLocationChange}
+                            setBaseRunLocation={props.setBaseRunLocation}
+                            onChange={(...args) => {
+                                setField({ name: locationField?.name || "location" }, ...args);
+                            }}
+                        />
+                    </div>
+                )}
             </div>
         </FormElementWrapper>
     );

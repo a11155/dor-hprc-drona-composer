@@ -291,7 +291,7 @@ function Picker(props) {
               alignItems: "center",        // vertically center text/icons
 
             }}
-            readOnly={props.disableChange}
+            disabled={props.disableChange}
           >
             {props.localLabel}
           </button>

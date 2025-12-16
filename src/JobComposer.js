@@ -21,6 +21,7 @@ function JobComposer({
   multiPaneRef,
   showSplitScreenModal,
   setShowSplitScreenModal,
+  onResetDronaJobId,
   ...props
 }) {
   const [showHistory, setShowHistory] = useState(true);
@@ -153,6 +154,9 @@ function JobComposer({
   const handleConfirmOverwrite = () => {
     setShowConfirmationModal(false);
     setIsSplitScreenMinimized(false);
+    if (onResetDronaJobId) {
+      onResetDronaJobId();
+    }
     reset();
 
     if (props.handlePreview) {
@@ -207,6 +211,9 @@ function JobComposer({
     setShowSplitScreenModal(false);
     setIsSplitScreenMinimized(false);
     reset();
+    if (onResetDronaJobId) {
+      onResetDronaJobId();
+    }
   };
 
   const handleMinimizeSplitScreenModal = () => {
@@ -259,6 +266,8 @@ function JobComposer({
                     runLocation={props.runLocation}
                     setRunLocation={props.setRunLocation}
                     customRunLocation={props.customRunLocation}
+                    setLocationPickedByUser={props.setLocationPickedByUser}
+                    locationPickedByUser={props.locationPickedByUser}
                   />
                 </div>
               </div>
