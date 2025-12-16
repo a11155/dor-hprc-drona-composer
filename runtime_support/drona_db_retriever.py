@@ -152,6 +152,15 @@ def update_record(drona_id: str, db_path=None, status=None, runtime_meta=None, s
             updates.append("status = ?")
             params.append(status)
         if runtime_meta is not None:
+            # Ensure runtime_meta is stored as JSON string
+            if isinstance(runtime_meta, str):
+                try:
+                    # Try to parse as JSON first
+                    json_obj = json.loads(runtime_meta)
+                    runtime_meta = json.dumps(json_obj)  # store clean JSON string
+                except json.JSONDecodeError:
+                    # Leave as string if not valid JSON
+                    pass
             updates.append("runtime_meta = ?")
             params.append(runtime_meta)
         if start_time is not None:
@@ -184,7 +193,16 @@ def _print_json(obj: Any) -> None:
     print(json.dumps(obj, indent=2, sort_keys=True))
 
 def _sql_only(record: Dict[str, Any]) -> Dict[str, Any]:
-    return {k: record.get(k) for k in _DISPLAY_COLUMNS}
+    out = {}
+    for k in _DISPLAY_COLUMNS:
+        val = record.get(k)
+        if k == "runtime_meta" and val:
+            try:
+                val = json.loads(val)  # parse JSON string into dict
+            except Exception:
+                pass  # leave as string if invalid JSON
+        out[k] = val
+    return out
 
 def _present(record: Optional[Dict[str, Any]], include_json: bool) -> Optional[Dict[str, Any]]:
     if record is None:
