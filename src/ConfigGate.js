@@ -24,7 +24,6 @@ export default function ConfigGate(props) {
         
         const r = await fetch(window.CONFIG_STATUS_URL, { credentials: "same-origin" });
         const j = await r.json();
-        console.log("J:", j);
         setAction(j.action);
 
 
@@ -97,7 +96,7 @@ export default function ConfigGate(props) {
             label=""
             localLabel="Select"
             showFiles={false}
-            defaultLocation={""} // important: no "$HOME" here
+            defaultLocation={""}
             defaultPaths={{ Home: "/home/$USER", Scratch: "/scratch/user/$USER" }}
             useHPCDefaultPaths={true}
             onChange={(_, v) => handleDronaPathChange(_, v)}

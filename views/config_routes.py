@@ -21,16 +21,6 @@ def config_status():
         elif h.get("ran") is True and h.get("success") is False:
             out["notice"] = (out.get("notice") or "") + " Config migrated, but job history migration failed; you can continue normally."
         out["history_migration"] = h
-
-    out["debug_home"] = {
-    "Path.home": str(Path.home()),
-    "CONFIG_DIR": str(CONFIG_DIR),
-    "CONFIG_DIR_exists": CONFIG_DIR.exists(),
-    "CONFIG_FILE": str(CONFIG_FILE),
-    "CONFIG_FILE_exists": CONFIG_FILE.exists(),
-    "HOME_env": os.getenv("HOME"),
-    "USER_env": os.getenv("USER"),
-    }
     
     return jsonify(out), 200
 
