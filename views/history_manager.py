@@ -19,7 +19,7 @@ class JobHistoryManager:
         if not drona_dir:
             return
 
-        base_dir = os.path.join(drona_dir, "jobs")
+        base_dir = Path(drona_dir) / "jobs"
         try:
             Path(base_dir).mkdir(parents=True, exist_ok=True)
             self.db_path = os.path.join(base_dir, 'job_history.db')

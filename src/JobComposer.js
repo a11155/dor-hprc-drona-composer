@@ -29,6 +29,8 @@ function JobComposer({
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showRequiredFieldsModal, setShowRequiredFieldsModal] = useState(false);
   const [missingRequiredFields, setMissingRequiredFields] = useState([]);
+  const [configBlocked, setConfigBlocked] = useState(false);
+
 
   const {
     lines,
@@ -223,8 +225,10 @@ function JobComposer({
 
         <div className="card-body" style={{ overflowY: 'auto', flex: '1 1 auto' }}>
 
-	  <ConfigGate />
-          
+	  <ConfigGate onStatusChange={setConfigBlocked} />
+	  
+        {!configBlocked && (
+        <>
           <form
             ref={formRef}
             className="form"
@@ -294,7 +298,10 @@ function JobComposer({
           </form>          <div style={{ width: '100%', maxWidth: '100%', overflowX: 'auto' }}>
             <SubmissionHistory isExpanded={showHistory} handleRerun={props.handleRerun} handleForm={props.handleForm} />
           </div>
+          </>
+          )}
         </div>
+        
         <div className="card-footer">
           <small className="text-muted">
             Cautions: Job files will overwrite existing files with the same name. The same principle applies for your executable scripts.
