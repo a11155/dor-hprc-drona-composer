@@ -1,107 +1,157 @@
-import React, { useEffect, useContext } from "react";
+/**
+ * @name JobNameLocation
+ * @description A composite form component that combines job name input and location picker
+ * in a single row layout. Manages both the job name (text input) and working directory location
+ * (file picker) with synchronized state. Commonly used in HPC job submission forms.
+ *
+ * @example
+ * // Basic job name and location picker
+ * {
+ *   "type": "jobNameLocation",
+ *   "label": "Job Configuration",
+ *   "showName": true,
+ *   "showLocation": true,
+ *   "pickerLabel": "Browse",
+ *   "help": "Enter job name and select working directory"
+ * }
+ *
+ * @example
+ * // With custom defaults and disabled fields
+ * {
+ *   "type": "jobNameLocation",
+ *   "label": "Job Settings",
+ *   "customJobName": "MyJob",
+ *   "customJobLocation": "$HOME/jobs",
+ *   "disableJobNameChange": true,
+ *   "showLocation": true,
+ *   "help": "Job name is fixed, but you can change the location"
+ * }
+ *
+ * @property {boolean} [showName=true] - Whether to display the job name input field
+ * @property {boolean} [showLocation=true] - Whether to display the location picker
+ * @property {boolean} [disableJobNameChange=false] - Makes the job name field read-only
+ * @property {boolean} [disableJobLocationChange=false] - Makes the location picker read-only
+ * @property {string} [customJobName] - Pre-filled job name value
+ * @property {string} [customJobLocation] - Pre-filled location path
+ * @property {string} [label] - Display label for the entire component
+ * @property {string} [pickerLabel="Change"] - Label for the location picker button
+ * @property {string} [help] - Help text displayed below the component
+ * @property {boolean} [labelOnTop=true] - Whether to position label above the fields
+ */
+
+import React, { useEffect, useRef  } from "react";
 import FormElementWrapper from "../utils/FormElementWrapper";
 import Text from "../schemaElements/Text";
 import Picker from "../schemaElements/Picker";
-import { FormValuesContext } from "../FormValuesContext";
 
-export default function JobNameLocation(props) {
-    const { updateValue } = useContext(FormValuesContext);
+export default function JobNameLocation({
+    // schema-configurable
+    showName = true,
+    showLocation = true,
+    disableJobNameChange,
+    disableJobLocationChange,
+    help,
+    labelOnTop = true,
+    customJobName,
+    customJobLocation,
+    label,
+    pickerLabel = "Change",
 
-    // console.log("jobNameLocation elements:", props.elements);
+    // pass-through from Composer/FieldRenderer
+    sync_job_name,          // e.g., props.sync_job_name
+    runLocation,       // e.g., props.runLocation
+    setRunLocation,
+    setBaseRunLocation,
+    setLocationPickedByUser,
+    onChange,              // forwarded from FieldRenderer (handleValueChange wrapper)
+    ...rest
+}) {
 
+    //protect against marking "picked" due to any initialization calls
+    const didInit = useRef(false);
 
-    // const nameField = props.elements?.jobName;       // should have name: "name"
-    // const locationField = props.elements?.jobLocation; // should have name: "location"
-
-    const elementsArr = Array.isArray(props.elements) ? props.elements : [];
-
-    const nameField = elementsArr.find(f => f?.name === "name");
-    const locationField = elementsArr.find(f => f?.name === "location");
-
-    const showName = props.showName ?? true;
-    const showLocation = props.showLocation ?? true;
-
-    // Use element.value if present, otherwise fall back to customJobName/customJobLocation
-    const initialName = (nameField?.value ?? "") || (props.customJobName ?? "");
-    const initialLocation = (locationField?.value ?? "") || (props.customJobLocation ?? "");
-
-    // Current values (what we render). If schema doesn't have values yet, show the initial defaults.
-    const nameValue = (nameField?.value ?? "") || initialName;
-    const locationValue = (locationField?.value ?? "") || initialLocation;
-
-    // Wrapper works whether child calls onChange(value) OR onChange(name, value)
-    const setField = (field, ...args) => {
-        const v = args.length === 2 ? args[1] : args[0];
-        if (!field?.name) return;
-        updateValue(field.name, v);
+    // helper: supports onChange(name, value) OR onChange(value) OR onChange(event)
+    const extractValue = (args) => {
+        if (args.length >= 2) return args[1];
+        const a0 = args[0];
+        if (a0?.target) return a0.target.value;
+        return a0;
     };
 
-    // On mount: mimic old behavior of initializing from customJobName/customJobLocation
+
     useEffect(() => {
-        if (initialLocation) {
-            // keep external runLocation in sync (old behavior)
-            props.setRunLocation?.(initialLocation);
-            // write into form state so FormData has it even if user doesn't touch it
-            if (locationField?.name) updateValue(locationField.name, initialLocation);
+        if (customJobLocation) {
+            setRunLocation?.(customJobLocation);
+            // onChange?.("location", customJobLocation);
+        }
+        if (customJobName) {
+            sync_job_name?.(customJobName, customJobLocation);
+            // onChange?.("name", customJobName);
         }
 
-        if (initialName) {
-            // old behavior: sync_job_name hook
-            props.sync_job_name?.(initialName, initialLocation);
-            // write into form state
-            if (nameField?.name) updateValue(nameField.name, initialName);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        didInit.current = true;
     }, []);
+
+    const handleLocationChange = (...args) => {
+        const val = extractValue(args);
+
+        // Only mark as user-picked after init AND when value actually changes
+        if (didInit.current && val !== runLocation) {
+        setLocationPickedByUser?.(true);
+        }
+
+        // Keep existing behavior (update form state via FieldRenderer)
+        onChange?.(...args);
+
+        // If you also want to keep external runLocation state in sync:
+        if (val !== undefined) setRunLocation?.(val);
+    };
 
     return (
         <FormElementWrapper
-            labelOnTop={props.labelOnTop ?? true}
-            name="runDestination"
-            label={props.label}
-            help={props.help}
+            labelOnTop={labelOnTop}
+            name={"name_location"}
+            label={label}
+            help={help}
         >
-            <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap" }}>
-                {showName && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-                        <label style={{ whiteSpace: "nowrap" }}>Job Name</label>
-                        <Text
-                            // If you don't have elements yet, still render with name="name"
-                            {...(nameField || {})}
-                            name={nameField?.name || "name"}
-                            useLabel={false}
-                            value={nameValue || ""}              // if no customJobName -> blank
-                            placeholder="Name"
-                            disableChange={props.disableJobNameChange}
-                            onChange={(...args) => {
-                                setField({ name: nameField?.name || "name" }, ...args);
+            <div className="form-group">
+                <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                    {showName && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                            <label htmlFor="job-name" style={{ whiteSpace: 'nowrap' }}>Job Name</label>
+                            <Text
+                                name={"name"}
+                                id={"job-name"}
+                                label=""
+                                value={customJobName || ""}
+                                useLabel={false}              // suppress inner label; we render our own
+                                onNameChange={sync_job_name}   // mirrors previous inline behavior
+                                onChange={onChange}
+                                placeholder="Drona ID"
+                                disableChange={disableJobNameChange}
 
-                                // preserve old sync hook on change (but no path concatenation)
-                                const v = args.length === 2 ? args[1] : args[0];
-                                props.sync_job_name?.(v, locationValue);
-                            }}
-                        />
-                    </div>
-                )}
+                            />
+                        </div>
+                    )}
 
-                {showLocation && (
-                    <div style={{ flex: 1 }}>
-                        <Picker
-                            {...(locationField || {})}
-                            name={locationField?.name || "location"}
-                            useLabel={false}
-                            localLabel={(locationField && (locationField.pickerLabel || locationField.label)) || props.pickerLabel || "Set Location"}
+                    {showLocation && (
+                        <div style={{ display: 'flex', flexGrow: 1, gap: '1.5rem' }}>
 
-                            // Old behavior: if no customJobLocation, it used runLocation
-                            defaultLocation={locationValue || props.runLocation || ""}
-                            disableChange={props.disableJobLocationChange}
-                            setBaseRunLocation={props.setBaseRunLocation}
-                            onChange={(...args) => {
-                                setField({ name: locationField?.name || "location" }, ...args);
-                            }}
-                        />
-                    </div>
-                )}
+                            <div style={{ flex: 1 }}>
+                                <Picker
+                                    name={"location"}
+                                    useLabel={false}
+                                    localLabel={pickerLabel}
+                                    defaultLocation={runLocation}
+                                    onChange={handleLocationChange}          // keep renderer state/hooks consistent
+                                    setBaseRunLocation={setBaseRunLocation}
+                                    style={{ width: "100%", alignItems: "flex" }}
+                                    disableChange={disableJobLocationChange}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </FormElementWrapper>
     );

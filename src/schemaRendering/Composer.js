@@ -232,6 +232,7 @@ const Composer = forwardRef((props, ref) => {
           setRunLocation: props.setRunLocation,
           customRunLocation: props.customRunLocation,
           setBaseRunLocation: props.setBaseRunLocation,
+          setLocationPickedByUser: props.setLocationPickedByUser,
           // environment: props.environment,
         }}
       />

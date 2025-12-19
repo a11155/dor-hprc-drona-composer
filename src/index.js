@@ -69,27 +69,30 @@ export function App() {
       });
   }, []);
 
-  // function sync_job_name(name, customRunLocation) {
-  //   // console.log(customRunLocation)
-  //   const preferredLocation = customRunLocation || baseRunLocation;
-  //   // console.log("here is the run location " + baseRunLocation)
-  //   setRunLocation(
-  //     preferredLocation + "/" + name
-  //   );
-  //   setBaseRunLocation(preferredLocation);
-  // }
-
   function sync_job_name(name, customRunLocation) {
-    // If user picked a directory, store it as runLocation, but do NOT append name here.
-    if (customRunLocation) {
-      setRunLocation(customRunLocation);
-      setBaseRunLocation(customRunLocation);
-      // (also mark locationWasPickedByUser = true)
-    } else {
-      // If not user-picked, keep runLocation as the base (default runs dir)
-      setRunLocation(baseRunLocation);
+    if(!locationPickedByUser){
+      // console.log(customRunLocation)
+      const preferredLocation = customRunLocation || baseRunLocation;
+      // console.log("here is the run location " + baseRunLocation)
+      setRunLocation(
+        preferredLocation + "/" + name
+      );
+      setBaseRunLocation(preferredLocation);
     }
+    
   }
+
+  // function sync_job_name(name, customRunLocation) {
+  //   // If user picked a directory, store it as runLocation, but do NOT append name here.
+  //   if (customRunLocation) {
+  //     setRunLocation(customRunLocation);
+  //     setBaseRunLocation(customRunLocation);
+  //     // (also mark locationWasPickedByUser = true)
+  //   } else {
+  //     // If not user-picked, keep runLocation as the base (default runs dir)
+  //     setRunLocation(baseRunLocation);
+  //   }
+  // }
 
   useEffect(() => {
     if (!environment.env || !environment.src) return;
