@@ -66,64 +66,60 @@ def _safe_rename(src: Path, dst: Path):
         
 def probe_and_autofix_config():
     """
-    1) If no ~/.drona/
-        - If $SCRATCH/drona_composer exists
-            - Create a symlink $SCRATCH/drona_wfe -> $SCRATCH/drona_composer. Write to ~/.drona/config.json.
-        - Else ask user to select. We will create ~/.drona/config.json with correct location
-    2) If ~/.drona/ exists
-        - If config.json is valid use it
-        - Else ask user to select location.
+    1) First check for valid config
+        - if valid return it.
+    2) If no valid config and dc
+        - migrate, symlinks stuff
+    3) No valid config and no dc
+        - user selects
     """
     user = os.getenv("USER", "").strip()
     scratch_path = Path("/scratch/user") / user
     dc = scratch_path / "drona_composer"
     target = scratch_path / "drona_wfe"
     
-    if not CONFIG_DIR.exists():
-        if dc.exists() and dc.is_dir(): # then create a symlink
-            try:
-                if not target.exists():
-                    os.symlink(dc, target)
-                _write_config_json_atomically(str(target))
-                return {
-                    "ok": True,
-                    "drona_dir": str(target),
-                    "notice": (
-                        f"No ~/.drona found. Found '{dc}'. Created symlink "
-                        f"'{target.name}' -> 'drona_composer' and wrote ~/.drona/config.json."
-                    ),
-                    "action": "migrated",
-                }
-            except Exception as e:
-                return {
-                    "ok": False,
-                    "reason": f"Failed to migrate {dc} -> {target}: {e}",
-                    "action": "error",
-                }
-        else: # dc doesn't exists so prompt user to pick one
-            return {
-                "ok": True,
-                "reason": "No config found and no $SCRATCH/drona_composer to migrate. Please choose a location.",
-                "action": "select_needed",
-            }
-    else:
-        # check if valid config exists
-        r = _read_config_json()
-        if r.get("ok"):
-            cfg_path = Path(r["drona_dir"]).expanduser()
+    # 1) Fast path: valid config exists -> return immediately
+    r = _read_config_json()
+    if r.get("ok"):
+        cfg_path = Path(r["drona_dir"]).expanduser()
+        return {
+            "ok": True,
+            "drona_dir": str(cfg_path),
+            "notice": None,
+            "action": "ok",
+        }
 
+    # 2) No valid config: if legacy dir exists, migrate
+    if dc.is_dir():
+        try:
+            try:
+                os.symlink(dc, target)
+            except FileExistsError:
+                pass  # already exists (could be symlink or real dir)
+
+            _write_config_json_atomically(str(target))
             return {
                 "ok": True,
-                "drona_dir": str(cfg_path),
-                "notice": None,
-                "action": "ok",
+                "drona_dir": str(target),
+                "notice": (
+                    f"No valid config found. Found '{dc}'. Created/verified symlink "
+                    f"'{target.name}' -> 'drona_composer' and wrote ~/.drona/config.json."
+                ),
+                "action": "migrated",
             }
-        else:
+        except Exception as e:
             return {
                 "ok": False,
-                "reason": "Configuration is invalid. Please choose a location.",
-                "action": "select_needed",
+                "reason": f"Failed to migrate {dc} -> {target}: {e}",
+                "action": "error",
             }
+
+    # 3) No valid config and no legacy dir -> user must select
+    return {
+        "ok": False,
+        "reason": "No valid config found and no legacy drona_composer directory to migrate. Please choose a location.",
+        "action": "select_needed",
+    }
     
 def maybe_migrate_legacy_history():
     """

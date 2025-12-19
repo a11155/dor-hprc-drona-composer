@@ -5,9 +5,6 @@ import os, json
 
 from .utils import get_drona_config, probe_and_autofix_config, _write_config_json_atomically, maybe_migrate_legacy_history
 
-CONFIG_DIR = Path.home() / ".drona"
-CONFIG_FILE = CONFIG_DIR / "config.json"
-
 def config_status():
     out = probe_and_autofix_config() 
     if out.get("action") == "migrated":
