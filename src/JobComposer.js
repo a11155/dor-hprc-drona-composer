@@ -21,7 +21,10 @@ function JobComposer({
   multiPaneRef,
   showSplitScreenModal,
   setShowSplitScreenModal,
-  onResetDronaJobId,
+  setDronaJobId,
+  dronaJobId,
+  pendingNewPreview,
+  setPendingNewPreview,
   ...props
 }) {
   const [showHistory, setShowHistory] = useState(true);
@@ -120,9 +123,7 @@ function JobComposer({
       }
 
       // For new jobs, include drona_job_id from preview if available
-      if (props.dronaJobId) {
-        formData.append("drona_job_id", props.dronaJobId);
-      }
+      formData.set("drona_job_id", dronaJobId);
 
       return formData;
     }
@@ -154,12 +155,13 @@ function JobComposer({
   const handleConfirmOverwrite = () => {
     setShowConfirmationModal(false);
     setIsSplitScreenMinimized(false);
-    if (onResetDronaJobId) {
-      onResetDronaJobId();
-    }
     reset();
+    if (setDronaJobId && dronaJobId) {
+      setDronaJobId(dronaJobId + "*");
+      setPendingNewPreview(true);
+    }
 
-    if (props.handlePreview) {
+    if (!pendingNewPreview && props.handlePreview) {
       props.handlePreview();
     }
     setShowSplitScreenModal(true);
@@ -211,8 +213,8 @@ function JobComposer({
     setShowSplitScreenModal(false);
     setIsSplitScreenMinimized(false);
     reset();
-    if (onResetDronaJobId) {
-      onResetDronaJobId();
+    if (setDronaJobId && dronaJobId) {
+      setDronaJobId(dronaJobId + "*");
     }
   };
 

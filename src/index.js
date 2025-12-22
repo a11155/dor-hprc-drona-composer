@@ -46,9 +46,28 @@ export function App() {
 
   // Track drona_job_id returned from preview so submit can reuse it
   const [dronaJobId, setDronaJobId] = useState(null);
+  const [pendingNewPreview, setPendingNewPreview] = useState(false);
 
   const [environments, setEnvironments] = useState([]);
   const [error, setError] = useState(null);
+
+
+  useEffect(() => {
+    console.log("runLocation changed ->", runLocation);
+  }, [runLocation]);
+
+  useEffect(() => {
+    console.log("dronaJobId changed ->", dronaJobId);
+  }, [dronaJobId]);
+
+  useEffect(() => {
+    if (!pendingNewPreview) return;
+    if (!dronaJobId) return;
+    if (!dronaJobId.endsWith("*")) return;
+
+    setPendingNewPreview(false);
+    handlePreview();   // dronaJobId is guaranteed to generate new id
+  }, [pendingNewPreview, dronaJobId]);
 
   useEffect(() => {
     fetch(document.dashboard_url + "/jobs/composer/environments")
@@ -70,7 +89,7 @@ export function App() {
   }, []);
 
   function sync_job_name(name, customRunLocation) {
-    if(!locationPickedByUser){
+    if (!locationPickedByUser) {
       // console.log(customRunLocation)
       const preferredLocation = customRunLocation || baseRunLocation;
       // console.log("here is the run location " + baseRunLocation)
@@ -79,7 +98,7 @@ export function App() {
       );
       setBaseRunLocation(preferredLocation);
     }
-    
+
   }
 
   // function sync_job_name(name, customRunLocation) {
@@ -241,11 +260,11 @@ export function App() {
     };
 
     request.send(formData);
-    console.log("FormData2: ")
+    // console.log("FormData2: ")
 
-    for (const [key, value] of formData.entries()) {
-      console.log(key, value);
-    }
+    // for (const [key, value] of formData.entries()) {
+    //   console.log(key, value);
+    // }
 
   }
 
@@ -256,16 +275,15 @@ export function App() {
     setJobStatus("new");
     const formData = new FormData(formRef.current);
 
-
-
     //Append to form flag if location was picked by user 
-    formData.append("location_was_picked_by_user", locationPickedByUser ? "1" : "0");
+    formData.append("user_picked_location", locationPickedByUser ? "1" : "0");
 
 
     // If we already have a drona_job_id from a previous preview,
     // send it so the backend can reuse it instead of generating a new one
     if (dronaJobId) {
       formData.append("drona_job_id", dronaJobId);
+
     }
 
     if (!formData.has("runtime")) {
@@ -338,11 +356,11 @@ export function App() {
       }
     });
 
-    console.log("FormData: ")
+    // console.log("FormData: ")
 
-    for (const [key, value] of formData.entries()) {
-      console.log(key, value);
-    }
+    // for (const [key, value] of formData.entries()) {
+    //   console.log(key, value);
+    // }
   }
 
   function handleAddEnv() {
@@ -411,9 +429,11 @@ export function App() {
           setShowSplitScreenModal={setShowSplitScreenModal}
           setBaseRunLocation={setBaseRunLocation}
           dronaJobId={dronaJobId}
-          onResetDronaJobId={() => setDronaJobId(null)}
+          setDronaJobId={setDronaJobId}
           setLocationPickedByUser={setLocationPickedByUser}
           locationPickedByUser={locationPickedByUser}
+          pendingNewPreview={pendingNewPreview}
+          setPendingNewPreview={setPendingNewPreview}
         />
         {showRerunModal && (
           <RerunPromptModal
