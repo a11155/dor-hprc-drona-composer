@@ -318,7 +318,7 @@ function Picker(props) {
       >
         <div className="modal-dialog modal-lg" role="document">
           <div className="modal-content">
-            <div className="modal-header d-flex align-items-center justify-content-between" style={{ position: "sticky", top: "0", zIndex: "3"}}>
+            <div className="modal-header" style={{ position: "sticky", top: "0", zIndex: "3"}}>
               <h5 className="modal-title" id="exampleModalLabel">
                 {props.label}
               </h5>
@@ -371,7 +371,7 @@ function Picker(props) {
                   </button>
                 ))}
                 <br />
-	  	<div style={{ display: "flex", flexWrap: "wrap"}}>
+	  	<div>
                 {subDirs.map((path) => (
                   <button
                     key={path[1]}
