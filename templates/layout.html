@@ -101,17 +101,15 @@
       </nav>
 
       <script>
-        window.APP_ROOT = "{{ request.script_root|tojson }}";
-        document.dashboard_url = window.APP_ROOT;
+           window.APP_ROOT = {{ request.script_root|tojson }};
+           document.dashboard_url = window.APP_ROOT;
 
-        document.file_app_url = "{{ config.file_app_url }}";
-        document.file_editor_url = "{{ config.file_editor_url }}";
-        document.user = "{{ config.user }}";
-        document.drona_dir = "{{ config.drona_dir|tojson }}";
-        document.drona_root = "{{ config.drona_root }}";
+           document.file_app_url = "{{ config.file_app_url }}";
+           document.file_editor_url = "{{ config.file_editor_url }}";
+           document.user = "{{ config.user }}";
+           document.drona_dir = {{ config.drona_dir|tojson }}
 
-        window.CONFIG_STATUS_URL =
-          "{{ url_for('job_composer.config_status') }}";
+        window.CONFIG_STATUS_URL = "{{ url_for('job_composer.config_status') }}";
         window.CONFIG_SAVE_URL = "{{ url_for('job_composer.config_save') }}";
       </script>
 

@@ -9,7 +9,7 @@ import signal
 import sys
 from datetime import datetime
 from flask import request, jsonify, Blueprint
-from views.utils import get_drona_dir, get_env_dir, get_runtime_dir
+from views.utils import get_drona_dir, get_runtime_dir
 
 
 # Directory for job communication
@@ -276,7 +276,7 @@ def start_job_route():
     bash_cmd = data.get('bash_cmd', '')
     drona_job_id = data.get('drona_job_id')
     job_location = data.get('job_location')
-    env_dir = get_env_dir()
+    env_dir = data.get('env_dir')
     env_name = data.get('env_name')
     if env_name:
         env_dir = os.path.join(env_dir, env_name)

@@ -9,7 +9,6 @@ from .history_manager import JobHistoryManager
 from .utils import create_folder_if_not_exist, get_drona_dir
 from machine_driver_scripts.engine import Engine
 from .file_utils import save_file
-from .utils import get_runs_dir, get_envs_dir
 
 logger = Logger()
 socketio = None  # Will be initialized when passed from main app
@@ -36,16 +35,16 @@ def submit_job_route():
 
     # Require preview to have populated these
     drona_job_id = (params.get("drona_job_id") or "").strip()
-    if not drona_job_id:
-        return jsonify({
-            "error": "Missing drona_job_id. Please preview the job before submitting."
-        }), 400
+    # if not drona_job_id:
+    #     return jsonify({
+    #         "error": "Missing drona_job_id. Please preview the job before submitting."
+    #     }), 400
 
     location = (params.get("location") or "").strip()
-    if not location:
-        return jsonify({
-            "error": "Missing location. Please preview the job before submitting."
-        }), 400
+    # if not location:
+    #     return jsonify({
+    #         "error": "Missing location. Please preview the job before submitting."
+    #     }), 400
 
     # Do NOT modify location here (preview is the single source of truth)
     params["location"] = location

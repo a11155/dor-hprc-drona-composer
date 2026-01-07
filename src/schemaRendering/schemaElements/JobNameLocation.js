@@ -39,7 +39,7 @@
  * @property {boolean} [labelOnTop=true] - Whether to position label above the fields
  */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import FormElementWrapper from "../utils/FormElementWrapper";
 import Text from "../schemaElements/Text";
 import Picker from "../schemaElements/Picker";

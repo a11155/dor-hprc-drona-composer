@@ -216,8 +216,6 @@ def get_drona_root():
 def get_runtime_dir():
     return os.path.join(get_drona_root(), "runtime_support")
 
-def get_env_dir():
-    return os.path.join(get_drona_dir(), "environments")
 
 
 
