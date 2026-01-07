@@ -114,6 +114,7 @@ function JobComposer({
 
       if (props.environment && props.environment.src) {
         formData.append("env_dir", props.environment.src);
+        formData.append("env_name", props.environment.env);
       }
 
       if (props.globalFiles && props.globalFiles.length > 0) {

@@ -147,7 +147,9 @@ def submit_job_route():
     return jsonify({
         "bash_cmd": bash_cmd,
         "drona_job_id": job_record["job_id"],
-        "location": location
+        "location": location,
+        "env_name": params.get("env_name"),
+        "env_dir": params.get("env_dir")
     })
 
 
@@ -394,6 +396,8 @@ def preview_job_route():
     preview_job["drona_job_id"] = drona_job_id
     preview_job["name"] = params["name"]
     preview_job["location"] = params["location"]
+    preview_job["env_name"] = params["env_name"]
+    preview_job["env_dir"] = params["env_dir"]
 
     return jsonify(preview_job)
 

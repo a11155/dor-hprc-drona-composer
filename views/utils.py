@@ -32,6 +32,17 @@ def get_drona_dir():
     config = get_drona_config()
     return config["drona_dir"]
 
+def get_drona_root():
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
+def get_runtime_dir():
+    return os.path.join(get_drona_root(), "runtime_support")
+
+def get_env_dir():
+    return os.path.join(get_drona_dir(), "environments")
+
+
+
 @handle_api_error
 def get_main_paths_route():
     """Get system and user paths for file operations"""

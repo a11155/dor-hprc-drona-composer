@@ -234,7 +234,7 @@ export function useJobSocket() {
     return false;
   };
 
-  const startHttpJob = async (bashCmd, drona_job_id = null, job_location = null) => {
+  const startHttpJob = async (bashCmd, drona_job_id = null, job_location = null, env_name = null, env_dir = null) => {
     try {
       const url = `${baseUrl.current}/ws-start-job`;
       if (DEBUG) console.log('[DEBUG] Starting job URL:', url);
@@ -250,7 +250,9 @@ export function useJobSocket() {
         body: JSON.stringify({
           bash_cmd: bashCmd,
           ...(drona_job_id && { drona_job_id: drona_job_id }),
-          ...(job_location && { job_location: job_location })
+          ...(job_location && { job_location: job_location }),
+          ...(env_name && { env_name: env_name }),
+          ...(env_dir && { env_dir: env_dir })
         })
       });
 
@@ -319,8 +321,9 @@ export function useJobSocket() {
             // console.log('[DEBUG] raw responseText:', initialRequest.responseText);
           }
 
-          if (initialRequest.status === 200 && initialRequest.response && initialRequest.response.bash_cmd) {
-            startHttpJob(initialRequest.response.bash_cmd, initialRequest.response.drona_job_id, initialRequest.response.location);
+          if (initialRequest.status === 200 && initialRequest.response && initialRequest.response.bash_cmd && initialRequest.response.drona_job_id && initialRequest.response.location) {
+            startHttpJob(initialRequest.response.bash_cmd, initialRequest.response.drona_job_id, initialRequest.response.location,
+              initialRequest.response.env_name, initialRequest.response.env_dir);
           } else {
             appendOutput(`\nError starting the job: ${initialRequest.status}\n`);
             setStatus('error');

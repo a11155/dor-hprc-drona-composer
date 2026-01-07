@@ -42,10 +42,8 @@ export function App() {
   );
   const [baseRunLocation, setBaseRunLocation] = useState(defaultRunLocation)
   const [locationPickedByUser, setLocationPickedByUser] = useState(false);
-
-
-  // Track drona_job_id returned from preview so submit can reuse it
   const [dronaJobId, setDronaJobId] = useState(null);
+
   const [pendingNewPreview, setPendingNewPreview] = useState(false);
 
   const [environments, setEnvironments] = useState([]);
@@ -59,6 +57,10 @@ export function App() {
   useEffect(() => {
     console.log("dronaJobId changed ->", dronaJobId);
   }, [dronaJobId]);
+
+  useEffect(() => {
+    console.log("environment changed ->", environment);
+  }, [environment]);
 
   useEffect(() => {
     if (!pendingNewPreview) return;
@@ -244,6 +246,7 @@ export function App() {
 
     request.responseType = "json";
     formData.append("env_dir", environment.src);
+    formData.append("env_name", environment.env);
 
     request.open("POST", action, true);
 
@@ -300,10 +303,10 @@ export function App() {
 
     const action = document.dashboard_url + "/jobs/composer/preview";
 
-    // console.log("FormData: ")
-    // for (const [key, value] of formData.entries()) {
-    //   console.log(key, value);
-    // }
+    console.log("FormData: ")
+    for (const [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
 
     preview_job(action, formData, function (error, jobScript) {
       if (error) {
