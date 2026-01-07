@@ -50,17 +50,17 @@ export function App() {
   const [error, setError] = useState(null);
 
 
-  useEffect(() => {
-    console.log("runLocation changed ->", runLocation);
-  }, [runLocation]);
+  // useEffect(() => {
+  //   console.log("runLocation changed ->", runLocation);
+  // }, [runLocation]);
 
-  useEffect(() => {
-    console.log("dronaJobId changed ->", dronaJobId);
-  }, [dronaJobId]);
+  // useEffect(() => {
+  //   console.log("dronaJobId changed ->", dronaJobId);
+  // }, [dronaJobId]);
 
-  useEffect(() => {
-    console.log("environment changed ->", environment);
-  }, [environment]);
+  // useEffect(() => {
+  //   console.log("environment changed ->", environment);
+  // }, [environment]);
 
   useEffect(() => {
     if (!pendingNewPreview) return;
