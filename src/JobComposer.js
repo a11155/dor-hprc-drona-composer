@@ -10,6 +10,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import RequiredFieldsModal from "./RequiredFieldsModal";
 import { useJobSocket } from "./hooks/useJobSocket";
 import { validateRequiredFields } from "./schemaRendering/utils/fieldUtils";
+import ConfigGate from "./ConfigGate";
 
 
 function JobComposer({
@@ -32,6 +33,8 @@ function JobComposer({
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showRequiredFieldsModal, setShowRequiredFieldsModal] = useState(false);
   const [missingRequiredFields, setMissingRequiredFields] = useState([]);
+  const [configBlocked, setConfigBlocked] = useState(false);
+
 
   const {
     lines,
@@ -111,7 +114,6 @@ function JobComposer({
       });
 
       formData.append("additional_files", JSON.stringify(additional_files));
-
       if (props.environment && props.environment.src) {
         formData.append("env_dir", props.environment.src);
         formData.append("env_name", props.environment.env);
@@ -129,9 +131,14 @@ function JobComposer({
       return formData;
     }
   }
+  
 
   const handlePreview = () => {
     // Validate required fields before showing preview
+    if (!props.environment || !props.environment.env) {
+    setError("Please choose an environment before preview.");
+    return;
+    }
     if (props.composerRef?.current) {
       const currentFields = props.composerRef.current.getFields();
       const validation = validateRequiredFields(currentFields);
@@ -176,6 +183,10 @@ function JobComposer({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!props.environment || !props.environment.env) {
+    setError("Please choose an environment before submitting.");
+    return;
+    }
 
     // Block submission if job is already running
     if (isJobRunning) {
@@ -233,6 +244,11 @@ function JobComposer({
       <div className="card shadow" style={{ width: '100%', maxWidth: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
 
         <div className="card-body" style={{ overflowY: 'auto', flex: '1 1 auto' }}>
+
+	  <ConfigGate onStatusChange={setConfigBlocked} />
+	  
+        {!configBlocked && (
+        <>
           <form
             ref={formRef}
             className="form"
@@ -304,7 +320,10 @@ function JobComposer({
           </form>          <div style={{ width: '100%', maxWidth: '100%', overflowX: 'auto' }}>
             <SubmissionHistory isExpanded={showHistory} handleRerun={props.handleRerun} handleForm={props.handleForm} />
           </div>
+          </>
+          )}
         </div>
+        
         <div className="card-footer">
           <small className="text-muted">
             Cautions: Job files will overwrite existing files with the same name. The same principle applies for your executable scripts.

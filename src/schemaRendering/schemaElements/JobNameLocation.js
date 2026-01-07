@@ -39,7 +39,7 @@
  * @property {boolean} [labelOnTop=true] - Whether to position label above the fields
  */
 
-import React, { useEffect, useRef  } from "react";
+import React, { useEffect } from "react";
 import FormElementWrapper from "../utils/FormElementWrapper";
 import Text from "../schemaElements/Text";
 import Picker from "../schemaElements/Picker";
@@ -97,7 +97,7 @@ export default function JobNameLocation({
 
         // Only mark as user-picked after init AND when value actually changes
         if (didInit.current && val !== runLocation) {
-        setLocationPickedByUser?.(true);
+            setLocationPickedByUser?.(true);
         }
 
         // Keep existing behavior (update form state via FieldRenderer)

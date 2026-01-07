@@ -16,8 +16,11 @@ from views.utils import get_drona_dir, get_env_dir, get_runtime_dir
 JOBS_DIR = os.path.join('/var/www/ood/apps/dev/a11155/gateway/dor-hprc-drona-composer/active_jobs')
 
 def get_jobs_dir():
-    user = os.getenv('USER')
-    jobs_dir = os.path.join('/scratch/user', user, 'drona_composer', '.active_jobs')
+    drona_root = get_drona_dir()
+    if not drona_root["ok"]:
+        return jsonify({"message": drona_root["reason"]}), 400
+        
+    jobs_dir = os.path.join(drona_root['drona_dir'], '.active_jobs')
 
     if not os.path.exists(jobs_dir):
         os.makedirs(jobs_dir)
