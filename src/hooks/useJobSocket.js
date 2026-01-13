@@ -21,12 +21,14 @@ export function useJobSocket() {
   const baseUrl = useRef('');
 
 
+
   const DEBUG = true;
   // Streaming parameters
   const POLL_INTERVAL = 1000; // Poll server every 1000ms
   const STREAM_CHUNKS = 10;   // Split each response into 10 chunks
   const MIN_CHUNK_SIZE = 400;  // If text is smaller than this, output directly
   const CHUNK_DELAY = POLL_INTERVAL / STREAM_CHUNKS; // 100ms between chunks
+
 
   // Streaming state
   const chunkQueue = useRef([]); // Array of chunks to display
@@ -71,12 +73,15 @@ export function useJobSocket() {
   const splitIntoChunks = (text, numChunks) => {
     if (!text || text.length === 0) return [];
 
+
     const chunkSize = Math.ceil(text.length / numChunks);
     const chunks = [];
+
 
     for (let i = 0; i < text.length; i += chunkSize) {
       chunks.push(text.slice(i, i + chunkSize));
     }
+
 
     return chunks;
   };
@@ -84,7 +89,9 @@ export function useJobSocket() {
   const startStreaming = () => {
     if (isStreaming.current || chunkQueue.current.length === 0) return;
 
+
     isStreaming.current = true;
+
 
     const displayNextChunk = () => {
       if (chunkQueue.current.length === 0) {
@@ -92,19 +99,24 @@ export function useJobSocket() {
         return;
       }
 
+
       let chunksToTake = 1;
       const queueLength = chunkQueue.current.length;
 
+
       chunksToTake = Math.floor(queueLength / STREAM_CHUNKS) + 1;
+
 
       let combinedChunk = '';
       for (let i = 0; i < chunksToTake && chunkQueue.current.length > 0; i++) {
         combinedChunk += chunkQueue.current.shift();
       }
 
+
       accumulatedData.current += combinedChunk;
       setOutputBuffer(accumulatedData.current);
       processBuffer(accumulatedData.current);
+
 
       // Continue with next chunk if queue not empty
       if (chunkQueue.current.length > 0) {
@@ -113,6 +125,7 @@ export function useJobSocket() {
         isStreaming.current = false;
       }
     };
+
 
     displayNextChunk();
   };
@@ -154,6 +167,7 @@ export function useJobSocket() {
       const chunks = splitIntoChunks(text, STREAM_CHUNKS);
       chunkQueue.current.push(...chunks);
     }
+
 
     // Start streaming if not already active
     if (!isStreaming.current) {
@@ -234,7 +248,7 @@ export function useJobSocket() {
     return false;
   };
 
-  const startHttpJob = async (bashCmd, drona_job_id = null, job_location = null) => {
+  const startHttpJob = async (bashCmd, drona_job_id = null, job_location = null, env_name = null, env_dir = null) => {
     try {
       const url = `${baseUrl.current}/ws-start-job`;
       if (DEBUG) console.log('[DEBUG] Starting job URL:', url);
@@ -250,7 +264,9 @@ export function useJobSocket() {
         body: JSON.stringify({
           bash_cmd: bashCmd,
           ...(drona_job_id && { drona_job_id: drona_job_id }),
-          ...(job_location && { job_location: job_location })
+          ...(job_location && { job_location: job_location }),
+          ...(env_name && { env_name: env_name }),
+          ...(env_dir && { env_dir: env_dir })
         })
       });
 
@@ -319,8 +335,9 @@ export function useJobSocket() {
             // console.log('[DEBUG] raw responseText:', initialRequest.responseText);
           }
 
-          if (initialRequest.status === 200 && initialRequest.response && initialRequest.response.bash_cmd) {
-            startHttpJob(initialRequest.response.bash_cmd, initialRequest.response.drona_job_id, initialRequest.response.location);
+          if (initialRequest.status === 200 && initialRequest.response && initialRequest.response.bash_cmd && initialRequest.response.drona_job_id && initialRequest.response.location) {
+            startHttpJob(initialRequest.response.bash_cmd, initialRequest.response.drona_job_id, initialRequest.response.location,
+              initialRequest.response.env_name, initialRequest.response.env_dir);
           } else {
             appendOutput(`\nError starting the job: ${initialRequest.status}\n`);
             setStatus('error');

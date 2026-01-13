@@ -210,6 +210,15 @@ def get_runs_dir():
         return {"ok": False, "reason": g.get("reason", "drona_dir not configured")}
     return {"ok": True, "path": os.path.join(g["drona_dir"], "runs")}
 
+def get_drona_root():
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
+def get_runtime_dir():
+    return os.path.join(get_drona_root(), "runtime_support")
+
+
+
+
 @handle_api_error
 def get_main_paths_route():
     """Get system and user paths for file operations"""
