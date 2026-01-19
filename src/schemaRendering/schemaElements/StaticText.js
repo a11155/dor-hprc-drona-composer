@@ -74,12 +74,12 @@ function StaticText(props) {
 
   // Update form context whenever content changes (for conditional logic)
   useEffect(() => {
-    const currentContextValue = getFieldValue(formValues, props.name); 
-	
+    const currentContextValue = getFieldValue(formValues, props.name);
+
     if (updateValue && props.name && currentContextValue != content) {
       updateValue(props.name, content);
     }
-  }, [content, updateValue, props.name, formValues]);
+  }, [content, updateValue, props.name]);
 
   const relevantFieldNames = useMemo(() => {
     if (!props.retrieverParams) return [];
@@ -162,6 +162,14 @@ function StaticText(props) {
     [fetchContent] 
   );
 
+  // Handle static content value changes
+  useEffect(() => {
+    if (!props.isDynamic) {
+      setContent(props.value || "");
+    }
+  }, [props.isDynamic, props.value]);
+
+  // Handle dynamic content fetching
   useEffect(() => {
     if (refreshTimerRef.current) {
       clearInterval(refreshTimerRef.current);
@@ -169,7 +177,6 @@ function StaticText(props) {
     }
 
     if (!props.isDynamic) {
-      setContent(props.value || "");
       return;
     }
 
@@ -186,7 +193,7 @@ function StaticText(props) {
         clearInterval(refreshTimerRef.current);
       }
     };
-  }, [props.isDynamic, props.value, props.retrieverPath, props.refreshInterval, debouncedFetchContent, fetchContent]);
+  }, [props.isDynamic, props.retrieverPath, props.refreshInterval, debouncedFetchContent, fetchContent]);
 
   const prevRelevantValuesRef = useRef({});
   

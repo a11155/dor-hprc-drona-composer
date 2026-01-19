@@ -39,7 +39,7 @@
  * @property {boolean} [labelOnTop=true] - Whether to position label above the fields
  */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import FormElementWrapper from "../utils/FormElementWrapper";
 import Text from "../schemaElements/Text";
 import Picker from "../schemaElements/Picker";
@@ -62,9 +62,21 @@ export default function JobNameLocation({
     runLocation,       // e.g., props.runLocation
     setRunLocation,
     setBaseRunLocation,
+    setLocationPickedByUser,
     onChange,              // forwarded from FieldRenderer (handleValueChange wrapper)
     ...rest
 }) {
+
+    //protect against marking "picked" due to any initialization calls
+    const didInit = useRef(false);
+
+    // helper: supports onChange(name, value) OR onChange(value) OR onChange(event)
+    const extractValue = (args) => {
+        if (args.length >= 2) return args[1];
+        const a0 = args[0];
+        if (a0?.target) return a0.target.value;
+        return a0;
+    };
 
 
     useEffect(() => {
@@ -76,7 +88,24 @@ export default function JobNameLocation({
             sync_job_name?.(customJobName, customJobLocation);
             // onChange?.("name", customJobName);
         }
+
+        didInit.current = true;
     }, []);
+
+    const handleLocationChange = (...args) => {
+        const val = extractValue(args);
+
+        // Only mark as user-picked after init AND when value actually changes
+        if (didInit.current && val !== runLocation) {
+            setLocationPickedByUser?.(true);
+        }
+
+        // Keep existing behavior (update form state via FieldRenderer)
+        onChange?.(...args);
+
+        // If you also want to keep external runLocation state in sync:
+        if (val !== undefined) setRunLocation?.(val);
+    };
 
     return (
         <FormElementWrapper
@@ -114,7 +143,7 @@ export default function JobNameLocation({
                                     useLabel={false}
                                     localLabel={pickerLabel}
                                     defaultLocation={runLocation}
-                                    onChange={onChange}          // keep renderer state/hooks consistent
+                                    onChange={handleLocationChange}          // keep renderer state/hooks consistent
                                     setBaseRunLocation={setBaseRunLocation}
                                     style={{ width: "100%", alignItems: "flex" }}
                                     disableChange={disableJobLocationChange}

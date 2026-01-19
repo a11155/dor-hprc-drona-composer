@@ -3,16 +3,22 @@ from flask import jsonify, request, current_app
 from pathlib import Path
 import os, json
 
-from .utils import get_drona_config, probe_and_autofix_config, _write_config_json_atomically
-
+from .utils import get_drona_config, probe_and_autofix_config, _write_config_json_atomically, maybe_migrate_legacy_history
 
 def config_status():
-    out = probe_and_autofix_config()
-    if out.get("ok") and not out.get("missing_config"):
+    out = probe_and_autofix_config() 
+    if out.get("action") == "migrated":
         try:
-            maybe_migrate_legacy_history()
+            h = maybe_migrate_legacy_history()
         except Exception:
-            pass
+            h = {"ran": True, "success": False}
+        
+        if h.get("success") is True:
+            out["notice"] = (out.get("notice") or "") + " Also migrated your prior job history."
+        elif h.get("ran") is True and h.get("success") is False:
+            out["notice"] = (out.get("notice") or "") + " Config migrated, but job history migration failed; you can continue normally."
+        out["history_migration"] = h
+    
     return jsonify(out), 200
 
 def config_save():

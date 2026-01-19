@@ -25,8 +25,8 @@ def save_file(file, location):
 
 def fetch_subdirectories(path):
     """Get subdirectories and files in a directory"""
-    subdirectories = [os.path.basename(entry) for entry in os.listdir(path) if os.path.isdir(os.path.join(path, entry))]
-    subfiles = [os.path.basename(entry) for entry in os.listdir(path) if os.path.isfile(os.path.join(path, entry))]
+    subdirectories = sorted([os.path.basename(entry) for entry in os.listdir(path) if os.path.isdir(os.path.join(path, entry))])
+    subfiles = sorted([os.path.basename(entry) for entry in os.listdir(path) if os.path.isfile(os.path.join(path, entry))])  
     return {"subdirectories": subdirectories, "subfiles": subfiles}
 
 def download_file_route():

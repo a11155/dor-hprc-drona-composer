@@ -41,15 +41,41 @@ export function App() {
     defaultRunLocation
   );
   const [baseRunLocation, setBaseRunLocation] = useState(defaultRunLocation)
+  const [locationPickedByUser, setLocationPickedByUser] = useState(false);
+  const [dronaJobId, setDronaJobId] = useState(null);
 
+  const [pendingNewPreview, setPendingNewPreview] = useState(false);
 
   const [environments, setEnvironments] = useState([]);
   const [error, setError] = useState(null);
+
+
+  // useEffect(() => {
+  //   console.log("runLocation changed ->", runLocation);
+  // }, [runLocation]);
+
+  // useEffect(() => {
+  //   console.log("dronaJobId changed ->", dronaJobId);
+  // }, [dronaJobId]);
+
+  // useEffect(() => {
+  //   console.log("environment changed ->", environment);
+  // }, [environment]);
+
+  useEffect(() => {
+    if (!pendingNewPreview) return;
+    if (!dronaJobId) return;
+    if (!dronaJobId.endsWith("*")) return;
+
+    setPendingNewPreview(false);
+    handlePreview();   // dronaJobId is guaranteed to generate new id
+  }, [pendingNewPreview, dronaJobId]);
 
   useEffect(() => {
     fetch(document.dashboard_url + "/jobs/composer/environments")
       .then((response) => response.json())
       .then((data) => {
+
         setEnvironments(
           data.map((env) => ({
             value: env.env,
@@ -65,12 +91,45 @@ export function App() {
   }, []);
 
   function sync_job_name(name, customRunLocation) {
-    const preferredLocation = customRunLocation || baseRunLocation;
-    setRunLocation(
-      preferredLocation + "/" + name
-    );
-    setBaseRunLocation(preferredLocation);
+    if (!locationPickedByUser) {
+      // console.log(customRunLocation)
+      const preferredLocation = customRunLocation || baseRunLocation;
+      // console.log("here is the run location " + baseRunLocation)
+      setRunLocation(
+        preferredLocation + "/" + name
+      );
+      setBaseRunLocation(preferredLocation);
+    }
+
   }
+
+
+
+  // function sync_job_name(name, customRunLocation) {
+  //   // If user picked a directory, store it as runLocation, but do NOT append name here.
+  //   if (customRunLocation) {
+  //     setRunLocation(customRunLocation);
+  //     setBaseRunLocation(customRunLocation);
+  //     // (also mark locationWasPickedByUser = true)
+  //   } else {
+  //     // If not user-picked, keep runLocation as the base (default runs dir)
+  //     setRunLocation(baseRunLocation);
+  //   }
+  // }
+
+
+
+  // function sync_job_name(name, customRunLocation) {
+  //   // If user picked a directory, store it as runLocation, but do NOT append name here.
+  //   if (customRunLocation) {
+  //     setRunLocation(customRunLocation);
+  //     setBaseRunLocation(customRunLocation);
+  //     // (also mark locationWasPickedByUser = true)
+  //   } else {
+  //     // If not user-picked, keep runLocation as the base (default runs dir)
+  //     setRunLocation(baseRunLocation);
+  //   }
+  // }
 
   useEffect(() => {
     if (!environment.env || !environment.src) return;
@@ -203,6 +262,7 @@ export function App() {
 
     request.responseType = "json";
     formData.append("env_dir", environment.src);
+    formData.append("env_name", environment.env);
 
     request.open("POST", action, true);
 
@@ -219,6 +279,12 @@ export function App() {
     };
 
     request.send(formData);
+    // console.log("FormData2: ")
+
+    // for (const [key, value] of formData.entries()) {
+    //   console.log(key, value);
+    // }
+
   }
 
   const handleAddEnvironment = (newEnv) => {
@@ -227,6 +293,17 @@ export function App() {
   function handlePreview() {
     setJobStatus("new");
     const formData = new FormData(formRef.current);
+
+    //Append to form flag if location was picked by user 
+    formData.append("user_picked_location", locationPickedByUser ? "1" : "0");
+
+
+    // If we already have a drona_job_id from a previous preview,
+    // send it so the backend can reuse it instead of generating a new one
+    if (dronaJobId) {
+      formData.append("drona_job_id", dronaJobId);
+
+    }
 
     if (!formData.has("runtime")) {
       alert("Environment is required.");
@@ -241,6 +318,12 @@ export function App() {
     }
 
     const action = document.dashboard_url + "/jobs/composer/preview";
+
+    console.log("FormData: ")
+    for (const [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
+
     preview_job(action, formData, function (error, jobScript) {
       if (error) {
         alert(error);
@@ -249,7 +332,15 @@ export function App() {
         }
       } else {
 
-        // Not sure if this has any effect
+        // Capture drona_job_id from preview if provided
+        setDronaJobId(jobScript["drona_job_id"] || null);
+
+        // Sync run location to the effective location used in preview,
+        // so submit sees the same directory (including drona_job_id)
+        if (jobScript["location"]) {
+          setRunLocation(jobScript["location"]);
+        }
+
         setJobScript(jobScript["script"]);
 
         const panes = [
@@ -283,6 +374,12 @@ export function App() {
         setMessages(jobScript["messages"]);
       }
     });
+
+    // console.log("FormData: ")
+
+    // for (const [key, value] of formData.entries()) {
+    //   console.log(key, value);
+    // }
   }
 
   function handleAddEnv() {
@@ -350,6 +447,12 @@ export function App() {
           showSplitScreenModal={showSplitScreenModal}
           setShowSplitScreenModal={setShowSplitScreenModal}
           setBaseRunLocation={setBaseRunLocation}
+          dronaJobId={dronaJobId}
+          setDronaJobId={setDronaJobId}
+          setLocationPickedByUser={setLocationPickedByUser}
+          locationPickedByUser={locationPickedByUser}
+          pendingNewPreview={pendingNewPreview}
+          setPendingNewPreview={setPendingNewPreview}
         />
         {showRerunModal && (
           <RerunPromptModal

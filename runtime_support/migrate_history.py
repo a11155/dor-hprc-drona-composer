@@ -22,9 +22,12 @@ from .drona_db_retriever import _default_db_path
 
 def _default_json_path(user: Optional[str]) -> Path:
     if not user:
-        user = os.environ.get("DRONA_USER") or os.environ.get("USER") or os.environ.get("LOGNAME") or "user"
+        user = os.environ.get("USER")
     base = os.environ.get("SCRATCH")
-    base_path = Path(os.path.expanduser(os.path.expandvars(base))) if base else Path.home()
+    if base:
+        base_path = Path(os.path.expanduser(os.path.expandvars(base)))
+    else:
+        base_path = Path("/scratch/user") / user
     return (base_path / "drona_composer" / "jobs" / (user + "_history.json")).resolve()
 
 def _coerce_environment(item: Dict[str, Any]) -> str:

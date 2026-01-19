@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import Picker from "./schemaRendering/schemaElements/Picker";
 import ErrorAlert from "./ErrorAlert";
 
-export default function ConfigGate() {
+export default function ConfigGate(props) {
   const [loading, setLoading] = useState(true);
-  const [missing, setMissing] = useState(false);
+  const [action, setAction] = useState(null);
   const [reason, setReason] = useState("");
   const [currentDir, setCurrentDir] = useState("");
   const [notice, setNotice] = useState(null);
-    const [showNotice, setShowNotice] = useState(false);
+  const [showNotice, setShowNotice] = useState(false);
 
 
   useEffect(() => {
@@ -16,28 +16,32 @@ export default function ConfigGate() {
       try {
         if (!window.CONFIG_STATUS_URL) {
           console.error("ConfigGate: CONFIG_STATUS_URL is not defined on window");
-          setMissing(true);
+          setAction("error");
           setReason("Configuration status URL not defined.");
           setLoading(false);
           return;
         }
+        
         const r = await fetch(window.CONFIG_STATUS_URL, { credentials: "same-origin" });
         const j = await r.json();
+        setAction(j.action);
+
+
         if (j.action === "migrated" && j.notice) {
-            setNotice({ message: j.notice }); // For error alert
+            setNotice(j.notice);      
             setShowNotice(true);
         }
-        if (j.missing_config) {
-          setMissing(true);
+        if (j.action === "select_needed") {
           setReason(j.reason || "Configuration not found.");
-          setCurrentDir(""); // fall back to $HOME in UI
+          setCurrentDir("");
+          props.onStatusChange(true);
         } else {
-          setMissing(false);
           setCurrentDir(j.drona_dir || "");
+          props.onStatusChange(false);
         }
       } catch (e) {
         console.error("ConfigGate: status fetch failed:", e);
-        setMissing(true);
+        setAction("error");
         setReason("Failed to check configuration status.");
       } finally {
         setLoading(false);
@@ -65,34 +69,40 @@ export default function ConfigGate() {
   return (
   <>
     {showNotice && notice && (
-      <ErrorAlert
-        error={notice}
-        onClose={() => setShowNotice(false)}
-      />
+      <div
+        className="alert alert-warning alert-dismissible"
+        role="alert"
+        style={{ marginBottom: 12 }}
+      >
+        <strong>Warning:</strong> {notice}
+        <button
+          type="button"
+          className="close"
+          onClick={() => setShowNotice(false)}
+          style={{ marginLeft: 8 }}
+        >
+          ×
+        </button>
+      </div>
     )}
 
-    {loading || !missing ? null : (
+    {loading || action !== "select_needed" ? null : (
       <div className="alert alert-warning" style={{ marginBottom: 12 }}>
-        <div style={{ fontWeight: 600, marginBottom: 6 }}>Drona directory not set</div>
-        <div style={{ marginBottom: 8 }}>{reason}</div>
+        <div style={{ fontWeight: 600, marginBottom: 6 }}>Select directory where Drona will store workflow data and environments.</div>
 
         <div className="drona-dir-picker">
           <Picker
             name="dronaDirPicker"
-            label="Drona working directory"
-            localLabel="Browse Directories"
+            label=""
+            localLabel="Select"
             showFiles={false}
-            defaultLocation={""} // important: no "$HOME" here
+            defaultLocation={""}
             defaultPaths={{ Home: "/home/$USER", Scratch: "/scratch/user/$USER" }}
             useHPCDefaultPaths={true}
             onChange={(_, v) => handleDronaPathChange(_, v)}
             index={0}
           />
         </div>
-
-        <small className="text-muted">
-          Pick the folder that will contain your Drona composer data.
-        </small>
       </div>
     )}
   </>
