@@ -5,7 +5,7 @@ from .error_handler import APIError, handle_api_error
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from runtime_support.migrate_history import migrate as migrate_legacy_history
+from runtime_support.db_access.migrate_history import migrate as migrate_legacy_history
 
 import shutil
 
