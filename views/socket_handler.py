@@ -28,7 +28,7 @@ def get_jobs_dir():
     return jobs_dir
 
 # Python pty is necessary to handle things carriage returns
-def create_pty_wrapper_script(jobs_dir, bash_cmd, drona_job_id, job_location=None, runtime_dir=None, env_dir=None):
+def create_pty_wrapper_script(jobs_dir, bash_cmd, drona_job_id, job_location, runtime_dir, env_dir, env_name):
     """Create a Python wrapper script that uses PTY for proper terminal emulation"""
     wrapper_content = f'''#!/usr/bin/env python3
 import os
@@ -89,9 +89,11 @@ def run_command_with_pty():
         }})
         
         {f"env['DRONA_WF_ID'] = '{drona_job_id}'" if drona_job_id else ""}
-        {f"env['DRONA_WF_LOCATION'] = '{job_location}'" if job_location else ""}
-        {f"env['DRONA_WF_RUNTIME_DIR'] = '{runtime_dir}'" if runtime_dir else ""}
-        {f"env['DRONA_WF_ENV_LOCATION'] = '{env_dir}'" if env_dir else ""}
+        {f"env['DRONA_WF_DIR'] = '{job_location}'" if job_location else ""}
+        {f"env['DRONA_RUNTIME_DIR'] = '{runtime_dir}'" if runtime_dir else ""}
+        {f"env['DRONA_ENV_DIR'] = '{env_dir}'" if env_dir else ""}
+        {f"env['DRONA_ENV_NAME'] = '{env_name}'" if env_name else ""}
+
 
         
         # Start process with PTY
@@ -204,7 +206,7 @@ if __name__ == "__main__":
 '''
     return wrapper_content
 
-def start_external_job(bash_cmd, drona_job_id, job_location=None, runtime_dir=None, env_dir=None):
+def start_external_job(bash_cmd, drona_job_id, job_location, runtime_dir, env_dir, env_name):
     """Start job as completely external process using PTY"""
     jobs_dir = get_jobs_dir()
     
@@ -215,7 +217,8 @@ def start_external_job(bash_cmd, drona_job_id, job_location=None, runtime_dir=No
         drona_job_id,
         job_location,
         runtime_dir,
-        env_dir
+        env_dir,
+        env_name
     )
     wrapper_path = os.path.join(jobs_dir, f"{drona_job_id}_wrapper.py")
     
@@ -285,10 +288,9 @@ def start_job_route():
     if not bash_cmd:
         return jsonify({'error': 'No bash_cmd provided'}), 400
 
-    # job_id = str(uuid.uuid4())
 
     # Start external job (non-blocking)
-    start_external_job(bash_cmd, drona_job_id, job_location, runtime_dir, env_dir)
+    start_external_job(bash_cmd, drona_job_id, job_location, runtime_dir, env_dir, env_name)
 
     return jsonify({
         'job_id': drona_job_id,
