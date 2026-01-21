@@ -41,8 +41,8 @@ for id in "${ALL_JOBIDS[@]}"; do
 done
 
 # 4. Update the Database Record
-# Using the specific path: ${DRONA_WF_RUNTIME_DIR}/db_access/drona_db_retriever.py
-python3 "${DRONA_WF_RUNTIME_DIR}/db_access/drona_db_retriever.py" --edit  -i "$DRONA_WF_ID" --runtime-meta "{\"jobinfo\": [$JOB_JSON_ARRAY]}" > /dev/null
+# Using the specific path: ${DRONA_RUNTIME_DIR}/db_access/drona_db_retriever.py
+python3 "${DRONA_RUNTIME_DIR}/db_access/drona_db_retriever.py" --edit  -i "$DRONA_WF_ID" --runtime-meta "{\"jobinfo\": [$JOB_JSON_ARRAY]}" > /dev/null
 
 # 5. Formatted Output
 if [ "${#ALL_JOBIDS[@]}" -eq 1 ]; then
