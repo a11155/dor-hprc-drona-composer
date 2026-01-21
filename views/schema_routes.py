@@ -6,7 +6,7 @@ import subprocess
 import traceback
 from .error_handler import APIError, handle_api_error
 from copy import deepcopy
-from .utils import get_envs_dir
+from .utils import get_envs_dir, get_runtime_dir
 
 def iterate_schema(schema_dict):
     """Generator that yields all elements in the schema including nested ones"""
@@ -21,7 +21,7 @@ def execute_script(
     env_vars=None, 
     script_type="Generic", 
     parse_json=False, 
-    additional_args=None
+    additional_args=None,
 ):
     """
     Generic function to execute external scripts with standardized error handling.
@@ -61,6 +61,9 @@ def execute_script(
     
     # Prepare environment variables
     execution_env = os.environ.copy()
+
+    execution_env["DRONA_RUNTIME_DIR"] = get_runtime_dir() 
+
     if env_vars:
         for key, value in env_vars.items():
             try:
@@ -260,6 +263,34 @@ def evaluate_dynamic_text_route():
     
     return result
 
+
+
+
+@handle_api_error
+def evaluate_script_route():
+    retriever_path = request.args.get("retriever_path")
+    if not retriever_path:
+        raise APIError("retriever_path is required", status_code=400)
+
+    # All other query params become environment variables
+    env_vars = {
+        k.upper(): v
+        for k, v in request.args.items()
+        if k not in ["retriever_path"]
+    }
+
+    result = execute_script(
+        retriever_path=retriever_path,
+        env_vars=env_vars if env_vars else None,
+        script_type="Dynamic Script",
+        parse_json=False
+    )
+
+    return result
+
+
+
+
 def register_schema_routes(blueprint):
     """Register all schema-related routes to the blueprint"""
     blueprint.route('/schema/<environment>', methods=['GET'])(get_schema_route)
@@ -267,3 +298,4 @@ def register_schema_routes(blueprint):
     blueprint.route('/evaluate_dynamic_select', methods=['GET'])(evaluate_dynamic_select_route)
     blueprint.route('/evaluate_autocomplete', methods=['GET'])(evaluate_autocomplete_route)
     blueprint.route('/evaluate_dynamic_text', methods=['GET'])(evaluate_dynamic_text_route)
+    blueprint.route('/evaluate_script', methods=['GET'])(evaluate_script_route)

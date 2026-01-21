@@ -39,7 +39,7 @@ import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } 
 import FormElementWrapper from "../utils/FormElementWrapper";
 import { FormValuesContext } from "../FormValuesContext";
 import { getFieldValue } from "../utils/fieldUtils";
-import config from "@config";
+import { executeScript } from "../utils/utils";
 
 function DynamicCheckboxGroup(props) {
     const [options, setOptions] = useState(props.options || []);
@@ -48,7 +48,7 @@ function DynamicCheckboxGroup(props) {
     const [isEvaluated, setIsEvaluated] = useState(false);
     const [invalidSelections, setInvalidSelections] = useState([]); // values no longer present
 
-    const { values: formValues } = useContext(FormValuesContext);
+    const { values: formValues, updateValue, environment } = useContext(FormValuesContext);
     const formValuesRef = useRef(formValues);
     const isShown = props.isShown ?? true;
 
@@ -67,10 +67,6 @@ function DynamicCheckboxGroup(props) {
             .filter((v) => typeof v === "string" && v.startsWith("$"))
             .map((v) => v.substring(1));
     }, [props.retrieverParams]);
-
-    const devUrl = config.development.dashboard_url;
-    const prodUrl = config.production.dashboard_url;
-    const curUrl = process.env.NODE_ENV === "development" ? devUrl : prodUrl;
 
     // After options change, mark prior selections that are now missing (do NOT append them)
     useEffect(() => {
@@ -92,52 +88,25 @@ function DynamicCheckboxGroup(props) {
         }
 
         setIsLoading(true);
-        const currentFormValues = formValuesRef.current;
 
         try {
-            const params = new URLSearchParams();
-            if (props.retrieverParams && typeof props.retrieverParams === "object") {
-                Object.entries(props.retrieverParams).forEach(([key, value]) => {
-                    if (typeof value === "string" && value.startsWith("$")) {
-                        const fieldName = value.substring(1);
-                        const fieldValue = getFieldValue(currentFormValues, fieldName);
-                        if (fieldValue !== undefined) {
-                            params.append(key, JSON.stringify(fieldValue));
-                        }
-                    } else {
-                        params.append(key, JSON.stringify(value));
-                    }
-                });
-            }
+            const data = await executeScript({
+                retrieverPath: retrieverPath,
+                retrieverParams: props.retrieverParams,
+                formValues: formValuesRef.current,
+                parseJSON: true,
+		environment: environment,
+                onError: props.setError
+            });
 
-            const queryString = params.toString();
-            const requestUrl = `${curUrl}/jobs/composer/evaluate_dynamic_text?retriever_path=${encodeURIComponent(
-                retrieverPath
-            )}${queryString ? `&${queryString}` : ""}`;
-
-            const response = await fetch(requestUrl);
-            if (!response.ok) {
-                let errorData = {};
-                try { errorData = await response.json(); } catch { }
-                props.setError?.({
-                    message: errorData.message || "Failed to retrieve checkbox options",
-                    status_code: response.status,
-                    details: errorData.details || errorData
-                });
-                setIsEvaluated(true); // show empty state
-                return;
-            }
-
-            const data = await response.json();
             setOptions(Array.isArray(data) ? data : []);
             setIsEvaluated(true);
         } catch (error) {
-            props.setError?.(error);
             setIsEvaluated(true); // show empty state
         } finally {
             setIsLoading(false);
         }
-    }, [props.retrieverPath, props.retriever, props.retrieverParams, props.setError, curUrl]);
+    }, [props.retrieverPath, props.retriever, props.retrieverParams, props.setError]);
 
     // Initial fetch when shown
     useEffect(() => {
