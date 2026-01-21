@@ -67,7 +67,7 @@ Schema files support conditional field display based on user selections, allowin
     "type": "text",
     "name": "advancedConfig",
     "label": "Advanced Configuration",
-    "condition": "operation === 'advanced'"
+    "condition": "operation.advanced"
   }
 }
 ```
@@ -88,18 +88,32 @@ For complex workflows, schema files can be decomposed into multiple files using 
       {"value": "training", "label": "Training"}
     ]
   },
-  "inferenceSection": {
-    "$ref": "schema_components/inference.json",
-    "condition": "operationType === 'inference'"
+
+  "inferenceContainer: {
+    "elements": {
+      "inferenceSection": {
+        "$ref": "/absolute/path/schema_components/inference.json",
+      }
+   },
+   "condition": "operationType.inference"
+
   },
-  "trainingSection": {
-    "$ref": "schema_components/training.json", 
-    "condition": "operationType === 'training'"
+
+  "inferenceContainer: {
+    "elements": {
+      "trainingSection": {
+        "$ref": "schema_components/training.json#/modelContainer", 
+      } 
+    },
+    "condition": "operationType.training"
   }
 }
 ```
 
-This modular approach enables component reuse and maintainable schema organization for workflows with multiple execution paths or complex configuration requirements.
+A reference element can either reference an entire json file such as `inference.json`, or a specific element as in the `modelContainer` following the standard conventions of `jsonref`. The path used for references is relative to the environment directory, but can also be an absolute path. Current limitation involves that if an element is a reference element, it cannot include additonal fields such as condition.
+
+This modular approach enables component reuse and maintainable schema organization for workflows with multiple execution paths or complex configuration requirements. 
+
 
 ---
 
