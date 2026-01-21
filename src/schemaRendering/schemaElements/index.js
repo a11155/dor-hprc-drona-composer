@@ -14,9 +14,13 @@ import UnknownElement from "./UnknownElement";
 import DynamicSelect from "./DynamicSelect";
 import TextArea from "./TextArea";
 import StaticText from "./StaticText";
+import Hidden from "./Hidden";
 import AutocompleteSelect from "./AutocompleteSelect";
 import DragDropContainer from "./DragDropContainer";
-
+import JobNameLocation from "./JobNameLocation";
+import DynamicRadioGroup from "./DynamicRadioGroup";
+import CheckboxGroup from "./CheckboxGroup";
+import DynamicCheckboxGroup from "./DynamicCheckboxGroup";
 
 export {
 	Text,
@@ -34,32 +38,42 @@ export {
 	DynamicSelect,
 	TextArea,
 	StaticText,
+	Hidden,
 	AutocompleteSelect,
 	CollapsibleRowContainer,
 	CollapsibleColContainer,
-	DragDropContainer
+	DragDropContainer,
+	JobNameLocation,
+	DynamicRadioGroup,
+	CheckboxGroup,
+	DynamicCheckboxGroup
 }
 
 export const componentsMap = {
-  text: Text,
-  select: Select,
-  number: Number,
-  checkbox: Checkbox,
-  rowContainer: RowContainer,
-  radioGroup: RadioGroup,
-  picker: Picker,
-  uploader: Uploader,
-  time: Time,
-  module: Module,
-  unit: Unit,
-  dynamicSelect: DynamicSelect,
-  textarea: TextArea,
-  staticText: StaticText,
-  autocompleteSelect: AutocompleteSelect,
-  collapsibleRowContainer: CollapsibleRowContainer,
-  collapsibleColContainer: CollapsibleColContainer,
-  dragDropContainer: DragDropContainer
+	text: Text,
+	select: Select,
+	number: Number,
+	checkbox: Checkbox,
+	rowContainer: RowContainer,
+	radioGroup: RadioGroup,
+	picker: Picker,
+	uploader: Uploader,
+	time: Time,
+	module: Module,
+	unit: Unit,
+	dynamicSelect: DynamicSelect,
+	textarea: TextArea,
+	staticText: StaticText,
+	autocompleteSelect: AutocompleteSelect,
+	collapsibleRowContainer: CollapsibleRowContainer,
+	collapsibleColContainer: CollapsibleColContainer,
+	dragDropContainer: DragDropContainer,
+	jobNameLocation: JobNameLocation,
+	dynamicRadioGroup: DynamicRadioGroup,
+	checkboxGroup: CheckboxGroup,
+	dynamicCheckboxGroup: DynamicCheckboxGroup
+
 };
 
-export const Containers = ["rowContainer", "collapsibleRowContainer", "collapsibleColContainer", "dragDropContainer"];
+export const Containers = ["rowContainer", "collapsibleRowContainer", "collapsibleColContainer", "dragDropContainer", "jobNameLocation"];
 

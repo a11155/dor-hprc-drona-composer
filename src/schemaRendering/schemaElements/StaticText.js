@@ -64,13 +64,22 @@ function StaticText(props) {
   const [error, setError] = useState(null);
   const refreshTimerRef = useRef(null);
 
-  const { values: formValues } = useContext(FormValuesContext);
+  const { values: formValues, updateValue } = useContext(FormValuesContext);
   
   const formValuesRef = useRef(formValues);
   
   useEffect(() => {
     formValuesRef.current = formValues;
   }, [formValues]);
+
+  // Update form context whenever content changes (for conditional logic)
+  useEffect(() => {
+    const currentContextValue = getFieldValue(formValues, props.name);
+
+    if (updateValue && props.name && currentContextValue != content) {
+      updateValue(props.name, content);
+    }
+  }, [content, updateValue, props.name]);
 
   const relevantFieldNames = useMemo(() => {
     if (!props.retrieverParams) return [];
@@ -153,6 +162,14 @@ function StaticText(props) {
     [fetchContent] 
   );
 
+  // Handle static content value changes
+  useEffect(() => {
+    if (!props.isDynamic) {
+      setContent(props.value || "");
+    }
+  }, [props.isDynamic, props.value]);
+
+  // Handle dynamic content fetching
   useEffect(() => {
     if (refreshTimerRef.current) {
       clearInterval(refreshTimerRef.current);
@@ -160,7 +177,6 @@ function StaticText(props) {
     }
 
     if (!props.isDynamic) {
-      setContent(props.value || "");
       return;
     }
 
@@ -177,7 +193,7 @@ function StaticText(props) {
         clearInterval(refreshTimerRef.current);
       }
     };
-  }, [props.isDynamic, props.value, props.retrieverPath, props.refreshInterval, debouncedFetchContent, fetchContent]);
+  }, [props.isDynamic, props.retrieverPath, props.refreshInterval, debouncedFetchContent, fetchContent]);
 
   const prevRelevantValuesRef = useRef({});
   
@@ -214,6 +230,7 @@ function StaticText(props) {
       name={props.name}
       label={props.label}
       help={props.help}
+	  useLabel={props.useLabel}
     >
       <div className="py-2 position-relative">
         {isLoading && (

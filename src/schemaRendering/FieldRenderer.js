@@ -6,7 +6,8 @@ const FieldRenderer = ({
   handleValueChange,
   labelOnTop,
   fieldStyles,
-  setError
+  setError,
+  locationProps = {}
 }) => {
   if (!fields) return null;
   const renderField = useMemo(() => (field) => {
@@ -28,6 +29,7 @@ const FieldRenderer = ({
             labelOnTop={labelOnTop}
             fieldStyles={fieldStyles}
             setError={setError}
+            {...locationProps}
           />
         </div>
       );
@@ -38,6 +40,25 @@ const FieldRenderer = ({
     }
 
     if (Element) {
+      // Normalize defaultLocation for picker-like components
+      let extraProps = {};
+    
+      if (type === "picker") {
+        const schemaDefault =
+          attributes.defaultLocation !== undefined
+            ? attributes.defaultLocation
+            : undefined;
+    
+        const fallbackFromLocation =
+          name === "location"
+            ? (locationProps.runLocation ?? "")
+            : "";
+    
+        extraProps.defaultLocation =
+          (typeof schemaDefault === "string" ? schemaDefault : null) ??
+          fallbackFromLocation;
+      }
+    
       return (
         <div key={name} className={fieldStyles}>
           <Element
@@ -46,8 +67,10 @@ const FieldRenderer = ({
             labelOnTop={labelOnTop}
             value={value}
             {...attributes}
+            {...extraProps}
             setError={setError}
             onChange={(_, val) => handleValueChange(name, val)}
+            {...locationProps}
           />
         </div>
       );
@@ -61,10 +84,11 @@ const FieldRenderer = ({
           labelOnTop={labelOnTop}
           type={type}
           {...attributes}
+          {...locationProps}
         />
       </div>
     );
-  }, [handleValueChange, fieldStyles, labelOnTop, setError]);
+  }, [handleValueChange, fieldStyles, labelOnTop, setError, locationProps]);
 
   const renderElements = useMemo(() => {
     return fields.map(field => renderField(field)).filter(Boolean);
@@ -77,7 +101,9 @@ const FieldRenderer = ({
 const areEqual = (prevProps, nextProps) => {
   return (
     prevProps.fields === nextProps.fields &&
-    prevProps.handleValueChange === nextProps.handleValueChange
+    // prevProps.handleValueChange === nextProps.handleValueChange
+    prevProps.handleValueChange === nextProps.handleValueChange &&
+    prevProps.locationProps === nextProps.locationProps
   );
 };
 

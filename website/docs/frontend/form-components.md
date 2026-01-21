@@ -2,12 +2,48 @@
 sidebar_position: 2
 ---
 
-
 # Form Components
 
-This section documents all available form components in the Drona Composer schema rendering system. Each component is designed to be used within the JSON schema structure and provides specific form input functionality.
+Documentation for all form components in the Drona Composer system. Components are used in JSON schema files by specifying the appropriate `type` field.
 
-*This documentation is automatically generated from JSDoc comments in the source code and includes live interactive demos.*
+## Common Properties
+
+All form components share a set of standard properties that control basic behavior, display, and validation:
+
+### Required Properties
+- **`type`** (string) - Determines which component to render (e.g., "text", "select", "checkbox")
+- **`name`** (string) - Field identifier used for form submission and value storage
+
+### Standard Properties
+- **`label`** (string, optional) - Display label for the field
+- **`help`** (string, optional) - Help text displayed below the field
+- **`value`** (any, optional) - Default or initial value for the field
+
+### Layout Properties
+- **`labelOnTop`** (boolean, optional) - When true, positions label above the input instead of beside it
+
+### Conditional Display
+- **`isVisible`** (boolean, optional) - Controls whether the field is displayed (evaluated before rendering)
+- **`condition`** (object, optional) - Conditional expression object that determines field visibility based on other field values
+
+### Example with Common Properties
+```json
+{
+  "type": "text",
+  "name": "username",
+  "label": "User Name",
+  "value": "john_doe",
+  "help": "Enter your username",
+  "labelOnTop": true,
+  "isVisible": true
+}
+```
+
+---
+
+## Component Reference
+
+Each component below supports all common properties listed above, plus component-specific properties.
 
 ## AutocompleteSelect
 
@@ -67,6 +103,39 @@ A checkbox input component that returns a specified value when checked and an em
 
 ---
 
+## CheckboxGroup
+
+A checkbox group component that allows users to select multiple options from a list of choices. Displays options horizontally with their labels.
+
+### Properties
+- `name - Input field name, used for form submission` (string) - 
+- `label` (string, optional) - Display label for the field
+- `options - Array of option objects, each with value and label properties` (Array) - 
+- `value` (Array, optional) - Default/initial selected values
+- `help` (string, optional) - Help text displayed below the input
+
+### Example
+```json
+// Checkbox group with multiple options
+{
+"type": "checkboxGroup",
+"name": "features",
+"label": "CheckboxGroup",
+"options": [
+{ "value": "analytics", "label": "Analytics" },
+{ "value": "reporting", "label": "Reporting" },
+{ "value": "automation", "label": "Automation" }
+],
+"value": ["analytics", "reporting"],
+"help": "Select one or more options"
+}
+/
+```
+
+*Source: `src/schemaRendering/schemaElements/CheckboxGroup.js`*
+
+---
+
 ## CollapsibleRowContainer
 
 A collapsible container component that organizes form fields in a horizontal row. Features a header with a toggle button to show/hide the content, making complex forms more manageable. Each child element is rendered by the FieldRenderer component in a 100% width layout.
@@ -106,6 +175,142 @@ A collapsible container component that organizes form fields in a horizontal row
 ```
 
 *Source: `src/schemaRendering/schemaElements/CollapsibleContainer.js`*
+
+---
+
+## DragDropContainer
+
+A visual drag-and-drop form builder component that allows users to construct forms by dragging elements from a palette and dropping them into a workspace. Supports reordering elements, editing properties, and removing elements. Built with @dnd-kit for smooth drag-and-drop interactions.
+
+### Properties
+- `name - Input field name, used for form submission` (string) - 
+- `label` (string, optional) - Display label for the field
+- `title="Drag & Drop Builder"` (string, optional) - Title displayed in the builder header
+- `availableElements=` (Array, optional) - ] - Array of element type names available in the palette
+- `elementTemplates={}` (Object, optional) - Configuration templates for each element type, with label, description, and config
+- `allowEdit=true` (boolean, optional) - Whether users can edit element properties after dropping
+- `elements={}` (Object|Array, optional) - Initial elements to display in the drop zone
+- `value` (string, optional) - JSON string of initial elements (alternative to elements prop)
+- `help` (string, optional) - Help text displayed below the builder
+
+### Example
+```json
+// Basic drag-drop builder with text and number elements
+{
+"type": "dragDropContainer",
+"name": "formBuilder",
+"label": "Form Builder",
+"title": "Drag & Drop Form Builder",
+"availableElements": ["text", "number", "select", "checkbox"],
+"elementTemplates": {
+"text": {
+"label": "Text Input",
+"description": "Single line text field",
+"config": { "type": "text", "placeholder": "Enter text" }
+},
+"number": {
+"label": "Number Input",
+"description": "Numeric input field",
+"config": { "type": "number", "min": 0 }
+}
+},
+"allowEdit": true,
+"help": "Drag elements from the palette to build your form"
+}
+/
+```
+
+*Source: `src/schemaRendering/schemaElements/DragDropContainer.js`*
+
+---
+
+## DynamicCheckboxGroup
+
+A checkbox group that dynamically loads its options from a retriever script. Allows multiple selections and automatically refreshes options when dependent form values change. Warns when previously selected options become unavailable and removes invalid selections on user interaction.
+
+### Properties
+- `name - Input field name, used for form submission` (string) - 
+- `label` (string, optional) - Display label for the field
+- `retriever - Path to the script that retrieves checkbox options` (string) - 
+- `retrieverParams` (Object, optional) - Parameters passed to the retriever script, values with $ prefix are replaced with form values
+- `value` (Array, optional) - Default/initial selected values (array of value strings)
+- `options` (Array, optional) - Initial options array, overridden by retriever results
+- `help` (string, optional) - Help text displayed below the checkboxes
+
+### Examples
+#### Example 1
+```json
+// Basic dynamic checkbox group
+{
+"type": "dynamicCheckboxGroup",
+"name": "selectedModules",
+"label": "Available Modules",
+"retriever": "retrievers/modules_list.sh",
+"value": ["module1", "module2"],
+"help": "Select one or more modules (options loaded dynamically)"
+}
+```
+
+#### Example 2
+```json
+// Dynamic checkbox group with parameters from form values
+{
+"type": "dynamicCheckboxGroup",
+"name": "permissions",
+"label": "User Permissions",
+"retriever": "retrievers/permissions_by_role.sh",
+"retrieverParams": { "role": "$userRole", "environment": "production" },
+"help": "Permissions update based on selected role"
+}
+/
+```
+
+*Source: `src/schemaRendering/schemaElements/DynamicCheckboxGroup.js`*
+
+---
+
+## DynamicRadioGroup
+
+A radio button group that dynamically loads its options from a retriever script. Allows single selection and automatically refreshes options when dependent form values change. Warns when the previously selected option becomes unavailable after options refresh.
+
+### Properties
+- `name - Input field name, used for form submission` (string) - 
+- `label` (string, optional) - Display label for the field
+- `retriever - Path to the script that retrieves radio button options` (string) - 
+- `retrieverParams` (Object, optional) - Parameters passed to the retriever script, values with $ prefix are replaced with form values
+- `value` (string, optional) - Default/initial selected value
+- `options` (Array, optional) - Initial options array, overridden by retriever results
+- `help` (string, optional) - Help text displayed below the radio buttons
+
+### Examples
+#### Example 1
+```json
+// Basic dynamic radio group
+{
+"type": "dynamicRadioGroup",
+"name": "cluster",
+"label": "Available Clusters",
+"retriever": "retrievers/clusters_list.sh",
+"value": "cluster1",
+"help": "Select a cluster (options loaded dynamically)"
+}
+```
+
+#### Example 2
+```json
+// Dynamic radio group with parameters from form values
+{
+"type": "dynamicRadioGroup",
+"name": "nodeType",
+"label": "Node Type",
+"retriever": "retrievers/node_types_by_cluster.sh",
+"retrieverParams": { "cluster": "$cluster", "availability": "high" },
+"help": "Available node types update based on selected cluster"
+}
+/
+```
+
+*Source: `src/schemaRendering/schemaElements/DynamicRadioGroup.js`*
 
 ---
 
@@ -151,6 +356,95 @@ A dropdown select component that dynamically loads its options from a retriever 
 ```
 
 *Source: `src/schemaRendering/schemaElements/DynamicSelect.js`*
+
+---
+
+## Hidden
+
+Executes dynamic scripts without any visual output. Takes no space and displays nothing, but can execute retriever scripts in the background for side effects.
+
+### Properties
+- `name - Component name (required but not visible)` (string) - 
+- `value` (string, optional) - Static value (used when no retriever is specified)
+- `retriever` (string, optional) - Path to the script file to execute (for dynamic execution)
+- `retrieverParams` (Object, optional) - Parameters passed to the script as environment variables
+- `refreshInterval` (number, optional) - Auto-execution interval in seconds
+- `setError` (function, optional) - Function to handle errors during script execution
+
+### Examples
+#### Example 1
+```json
+// Execute a script when form values change
+{
+"type": "hidden",
+"name": "backgroundProcess",
+"retriever": "retrievers/update_location.sh",
+"retrieverParams": { "jobName": "$name" },
+"refreshInterval": 5
+}
+```
+
+#### Example 2
+```json
+// Static value execution (no dynamic script)
+{
+"type": "hidden",
+"name": "staticAction",
+"value": "some_static_value"
+}
+/
+```
+
+*Source: `src/schemaRendering/schemaElements/Hidden.js`*
+
+---
+
+## JobNameLocation
+
+A composite form component that combines job name input and location picker in a single row layout. Manages both the job name (text input) and working directory location (file picker) with synchronized state. Commonly used in HPC job submission forms.
+
+### Properties
+- `showName=true` (boolean, optional) - Whether to display the job name input field
+- `showLocation=true` (boolean, optional) - Whether to display the location picker
+- `disableJobNameChange=false` (boolean, optional) - Makes the job name field read-only
+- `disableJobLocationChange=false` (boolean, optional) - Makes the location picker read-only
+- `customJobName` (string, optional) - Pre-filled job name value
+- `customJobLocation` (string, optional) - Pre-filled location path
+- `label` (string, optional) - Display label for the entire component
+- `pickerLabel="Change"` (string, optional) - Label for the location picker button
+- `help` (string, optional) - Help text displayed below the component
+- `labelOnTop=true` (boolean, optional) - Whether to position label above the fields
+
+### Examples
+#### Example 1
+```json
+// Basic job name and location picker
+{
+"type": "jobNameLocation",
+"label": "Job Configuration",
+"showName": true,
+"showLocation": true,
+"pickerLabel": "Browse",
+"help": "Enter job name and select working directory"
+}
+```
+
+#### Example 2
+```json
+// With custom defaults and disabled fields
+{
+"type": "jobNameLocation",
+"label": "Job Settings",
+"customJobName": "MyJob",
+"customJobLocation": "$HOME/jobs",
+"disableJobNameChange": true,
+"showLocation": true,
+"help": "Job name is fixed, but you can change the location"
+}
+/
+```
+
+*Source: `src/schemaRendering/schemaElements/JobNameLocation.js`*
 
 ---
 
@@ -586,18 +880,3 @@ A file and directory uploader component that allows users to select and upload i
 ---
 
 
-## Form Validation
-
-All form components support standard HTML5 validation attributes and provide visual feedback for validation errors. Components integrate with the FormElementWrapper to provide consistent styling and error display.
-
-## Custom Styling
-
-All components use Bootstrap CSS classes by default and can be styled using the `form-control` class. Custom styling can be applied through CSS or by modifying the component's styling props.
-
-## Integration
-
-These components are automatically registered and can be used in schema JSON files by specifying the appropriate `type` field. The schema renderer will automatically instantiate the correct component based on the type.
-
----
-
-*Last updated: 2025-12-01*
