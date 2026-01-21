@@ -129,8 +129,11 @@ def preview_job_route():
 
     name_in = (params.get("name") or "").strip()
     location_in = (params.get("location") or "").strip()
-    if not location_in:
-        location_in = os.path.join(get_drona_dir(), "runs")
+    drona = get_drona_dir()
+    if not drona.get("ok"):
+        raise APIError("Drona not configured", status_code=400, details=drona.get("reason"))
+
+    location_in = os.path.join(drona["drona_dir"], "runs")
 
     # 2) Decide drona_job_id
     if old_id and not is_deprecated:
