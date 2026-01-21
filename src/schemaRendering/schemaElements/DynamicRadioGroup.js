@@ -2,33 +2,33 @@
  * @name DynamicRadioGroup
  * @description A radio button group that dynamically loads its options from a retriever script.
  * Allows single selection and automatically refreshes options when dependent form values change.
- * Warns when the previously selected option becomes unavailable after options refresh.
+ * Warns when the previously selected option becomes unavailable.
  *
  * @example
  * // Basic dynamic radio group
  * {
  *   "type": "dynamicRadioGroup",
- *   "name": "cluster",
- *   "label": "Available Clusters",
- *   "retriever": "retrievers/clusters_list.sh",
- *   "value": "cluster1",
- *   "help": "Select a cluster (options loaded dynamically)"
+ *   "name": "selectedOption",
+ *   "label": "Choose One",
+ *   "retriever": "retrievers/options_list.sh",
+ *   "value": "option1",
+ *   "help": "Select one option (options loaded dynamically)"
  * }
  *
  * @example
  * // Dynamic radio group with parameters from form values
  * {
  *   "type": "dynamicRadioGroup",
- *   "name": "nodeType",
- *   "label": "Node Type",
- *   "retriever": "retrievers/node_types_by_cluster.sh",
- *   "retrieverParams": { "cluster": "$cluster", "availability": "high" },
- *   "help": "Available node types update based on selected cluster"
+ *   "name": "deployment",
+ *   "label": "Deployment Target",
+ *   "retriever": "retrievers/deployments_by_env.sh",
+ *   "retrieverParams": { "environment": "$selectedEnv" },
+ *   "help": "Deployment targets update based on selected environment"
  * }
  *
  * @property {string} name - Input field name, used for form submission
  * @property {string} [label] - Display label for the field
- * @property {string} retriever - Path to the script that retrieves radio button options
+ * @property {string} retriever - Path to the script that retrieves radio options
  * @property {Object} [retrieverParams] - Parameters passed to the retriever script, values with $ prefix are replaced with form values
  * @property {string} [value] - Default/initial selected value
  * @property {Array} [options] - Initial options array, overridden by retriever results
@@ -39,7 +39,7 @@ import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } 
 import FormElementWrapper from "../utils/FormElementWrapper";
 import { FormValuesContext } from "../FormValuesContext";
 import { getFieldValue } from "../utils/fieldUtils";
-import config from "@config";
+import { executeScript } from "../utils/utils";
 
 function DynamicRadioGroup(props) {
     const [options, setOptions] = useState(props.options || []);
@@ -48,7 +48,7 @@ function DynamicRadioGroup(props) {
     const [isEvaluated, setIsEvaluated] = useState(false);
     const [isValueInvalid, setIsValueInvalid] = useState(false); // current value no longer present
 
-    const { values: formValues } = useContext(FormValuesContext);
+    const { values: formValues, updateValue, environment } = useContext(FormValuesContext);
     const formValuesRef = useRef(formValues);
     const isShown = props.isShown ?? true;
 
@@ -67,10 +67,6 @@ function DynamicRadioGroup(props) {
             .filter((v) => typeof v === "string" && v.startsWith("$"))
             .map((v) => v.substring(1));
     }, [props.retrieverParams]);
-
-    const devUrl = config.development.dashboard_url;
-    const prodUrl = config.production.dashboard_url;
-    const curUrl = process.env.NODE_ENV === "development" ? devUrl : prodUrl;
 
     // After options change, mark prior selection as invalid if missing (do NOT append it)
     useEffect(() => {
@@ -91,52 +87,25 @@ function DynamicRadioGroup(props) {
         }
 
         setIsLoading(true);
-        const currentFormValues = formValuesRef.current;
 
         try {
-            const params = new URLSearchParams();
-            if (props.retrieverParams && typeof props.retrieverParams === "object") {
-                Object.entries(props.retrieverParams).forEach(([key, val]) => {
-                    if (typeof val === "string" && val.startsWith("$")) {
-                        const fieldName = val.substring(1);
-                        const fieldValue = getFieldValue(currentFormValues, fieldName);
-                        if (fieldValue !== undefined) {
-                            params.append(key, JSON.stringify(fieldValue));
-                        }
-                    } else {
-                        params.append(key, JSON.stringify(val));
-                    }
-                });
-            }
+            const data = await executeScript({
+                retrieverPath: retrieverPath,
+                retrieverParams: props.retrieverParams,
+                formValues: formValuesRef.current,
+                parseJSON: true,
+		environment: environment,
+                onError: props.setError
+            });
 
-            const queryString = params.toString();
-            const requestUrl = `${curUrl}/jobs/composer/evaluate_dynamic_text?retriever_path=${encodeURIComponent(
-                retrieverPath
-            )}${queryString ? `&${queryString}` : ""}`;
-
-            const response = await fetch(requestUrl);
-            if (!response.ok) {
-                let errorData = {};
-                try { errorData = await response.json(); } catch { }
-                props.setError?.({
-                    message: errorData.message || "Failed to retrieve radio options",
-                    status_code: response.status,
-                    details: errorData.details || errorData
-                });
-                setIsEvaluated(true); // show empty state if any
-                return;
-            }
-
-            const data = await response.json();
             setOptions(Array.isArray(data) ? data : []);
             setIsEvaluated(true);
         } catch (error) {
-            props.setError?.(error);
-            setIsEvaluated(true); // show empty state
+            setIsEvaluated(true); // show empty state if any
         } finally {
             setIsLoading(false);
         }
-    }, [props.retrieverPath, props.retriever, props.retrieverParams, props.setError, curUrl]);
+    }, [props.retrieverPath, props.retriever, props.retrieverParams, props.setError]);
 
     // Initial fetch when shown
     useEffect(() => {

@@ -216,7 +216,8 @@ const Composer = forwardRef((props, ref) => {
   }));
   const contextValue = {
     values: fields,
-    updateValue: handleValueChange
+    updateValue: handleValueChange,
+    environment: props.environment
   };
 
   return (
