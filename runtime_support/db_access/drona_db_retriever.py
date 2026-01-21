@@ -29,14 +29,18 @@ def _default_db_path(explicit_path: Optional[Union[str, Path]] = None) -> Path:
     env_db = os.environ.get("DRONA_HISTORY_DB")
     if env_db:
         return Path(os.path.expanduser(os.path.expandvars(env_db))).resolve()
-    base = os.environ.get("SCRATCH")
-    if base:
-        base_path = Path(os.path.expanduser(os.path.expandvars(base)))
-    else:
-        user = os.environ.get("USER")
-        base_path = Path("/scratch/user") / user
+    #Retrieve root from ~/.drona/config.json
+    config_file = Path("~/.drona/config.json").expanduser()
+    
+    with open(config_file, 'r') as f:
+        config_data = json.load(f)
+        drona_dir = config_data.get("drona_dir")
         
-    return (base_path / "drona_composer" / "jobs" / "job_history.db").resolve()
+    if not drona_dir:
+        raise KeyError(f"'drona_dir' not found in {config_file}")
+
+    #append /jobs/job_history.db to the config file dir
+    return (Path(drona_dir).resolve() / "jobs" / "job_history.db")
 
 _BASE_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS job_history (
