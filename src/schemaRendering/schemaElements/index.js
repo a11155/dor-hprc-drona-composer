@@ -75,5 +75,5 @@ export const componentsMap = {
 
 };
 
-export const Containers = ["rowContainer", "collapsibleRowContainer", "collapsibleColContainer", "dragDropContainer"];
+export const Containers = ["rowContainer", "collapsibleRowContainer", "collapsibleColContainer", "dragDropContainer", "jobNameLocation"];
 

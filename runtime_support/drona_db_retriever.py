@@ -30,7 +30,12 @@ def _default_db_path(explicit_path: Optional[Union[str, Path]] = None) -> Path:
     if env_db:
         return Path(os.path.expanduser(os.path.expandvars(env_db))).resolve()
     base = os.environ.get("SCRATCH")
-    base_path = Path(os.path.expanduser(os.path.expandvars(base))) if base else Path.home()
+    if base:
+        base_path = Path(os.path.expanduser(os.path.expandvars(base)))
+    else:
+        user = os.environ.get("USER")
+        base_path = Path("/scratch/user") / user
+        
     return (base_path / "drona_composer" / "jobs" / "job_history.db").resolve()
 
 _BASE_SCHEMA_SQL = """

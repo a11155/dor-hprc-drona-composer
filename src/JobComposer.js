@@ -22,6 +22,10 @@ function JobComposer({
   multiPaneRef,
   showSplitScreenModal,
   setShowSplitScreenModal,
+  setDronaJobId,
+  dronaJobId,
+  pendingNewPreview,
+  setPendingNewPreview,
   ...props
 }) {
   const [showHistory, setShowHistory] = useState(true);
@@ -29,6 +33,8 @@ function JobComposer({
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [showRequiredFieldsModal, setShowRequiredFieldsModal] = useState(false);
   const [missingRequiredFields, setMissingRequiredFields] = useState([]);
+  const [configBlocked, setConfigBlocked] = useState(false);
+
 
   const {
     lines,
@@ -70,6 +76,11 @@ function JobComposer({
         data["files"] = props.globalFiles;
       }
 
+      // Ensure drona_job_id is present for reruns (use existing job_id from history)
+      if (data["job_id"]) {
+        data["drona_job_id"] = data["job_id"];
+      }
+
       const formData = new FormData;
       for (const [key, value] of Object.entries(data)) {
         if (value instanceof File) {
@@ -105,6 +116,7 @@ function JobComposer({
       formData.append("additional_files", JSON.stringify(additional_files));
       if (props.environment && props.environment.src) {
         formData.append("env_dir", props.environment.src);
+        formData.append("env_name", props.environment.env);
       }
 
       if (props.globalFiles && props.globalFiles.length > 0) {
@@ -112,6 +124,9 @@ function JobComposer({
           formData.append("files[]", file);
         });
       }
+
+      // For new jobs, include drona_job_id from preview if available
+      formData.set("drona_job_id", dronaJobId);
 
       return formData;
     }
@@ -149,8 +164,12 @@ function JobComposer({
     setShowConfirmationModal(false);
     setIsSplitScreenMinimized(false);
     reset();
+    if (setDronaJobId && dronaJobId) {
+      setDronaJobId(dronaJobId + "*");
+      setPendingNewPreview(true);
+    }
 
-    if (props.handlePreview) {
+    if (!pendingNewPreview && props.handlePreview) {
       props.handlePreview();
     }
     setShowSplitScreenModal(true);
@@ -206,6 +225,9 @@ function JobComposer({
     setShowSplitScreenModal(false);
     setIsSplitScreenMinimized(false);
     reset();
+    if (setDronaJobId && dronaJobId) {
+      setDronaJobId(dronaJobId + "*");
+    }
   };
 
   const handleMinimizeSplitScreenModal = () => {
@@ -223,8 +245,10 @@ function JobComposer({
 
         <div className="card-body" style={{ overflowY: 'auto', flex: '1 1 auto' }}>
 
-	  <ConfigGate />
-          
+	  <ConfigGate onStatusChange={setConfigBlocked} />
+	  
+        {!configBlocked && (
+        <>
           <form
             ref={formRef}
             className="form"
@@ -261,6 +285,8 @@ function JobComposer({
                     runLocation={props.runLocation}
                     setRunLocation={props.setRunLocation}
                     customRunLocation={props.customRunLocation}
+                    setLocationPickedByUser={props.setLocationPickedByUser}
+                    locationPickedByUser={props.locationPickedByUser}
                   />
                 </div>
               </div>
@@ -294,7 +320,10 @@ function JobComposer({
           </form>          <div style={{ width: '100%', maxWidth: '100%', overflowX: 'auto' }}>
             <SubmissionHistory isExpanded={showHistory} handleRerun={props.handleRerun} handleForm={props.handleForm} />
           </div>
+          </>
+          )}
         </div>
+        
         <div className="card-footer">
           <small className="text-muted">
             Cautions: Job files will overwrite existing files with the same name. The same principle applies for your executable scripts.

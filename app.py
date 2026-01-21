@@ -2,7 +2,7 @@ from flask import Flask, render_template, redirect, jsonify, current_app
 from flask_cors import CORS
 from views.job_composer import job_composer
 from views import socket_handler
-from views.utils import get_drona_dir
+from views.utils import get_drona_dir, get_drona_root
 import yaml
 import os
 
@@ -28,6 +28,7 @@ def load_config(config_file='config.yml'):
 config = load_config()['development'] if env == 'development' else load_config()['production']
 app.config.update(config)
 app.config['user'] = os.environ['USER']
+app.config['drona_root'] = get_drona_root()
 
 dd = get_drona_dir()    
 if dd["ok"]:
@@ -47,4 +48,3 @@ def config_route():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
