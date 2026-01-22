@@ -32,6 +32,7 @@
 import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from "react";
 import { FormValuesContext } from "../FormValuesContext";
 import { getFieldValue } from "../utils/fieldUtils";
+import { executeScript } from "../utils/utils";
 
 function Hidden(props) {
   const [value, setValue] = useState(props.value || "");
@@ -39,7 +40,7 @@ function Hidden(props) {
   const [error, setError] = useState(null);
   const refreshTimerRef = useRef(null);
 
-  const { values: formValues, updateValue } = useContext(FormValuesContext);
+  const { values: formValues, updateValue, environment } = useContext(FormValuesContext);
   
   const formValuesRef = useRef(formValues);
   
@@ -62,7 +63,7 @@ function Hidden(props) {
       .map(value => value.substring(1));
   }, [props.retrieverParams]);
 
-  const executeScript = useCallback(async () => {
+  const executeScriptCallback = useCallback(async () => {
     if (!props.retrieverPath) {
       // For static values, just set the value (no script execution)
       setValue(props.value || "");
@@ -71,53 +72,25 @@ function Hidden(props) {
 
     setIsLoading(true);
     setError(null);
-    
-    const currentFormValues = formValuesRef.current;
 
     try {
-      const params = new URLSearchParams();
-      if (props.retrieverParams && typeof props.retrieverParams === 'object') {
-        Object.entries(props.retrieverParams).forEach(([key, value]) => {
-          if (typeof value === 'string' && value.startsWith('$')) {
-            const fieldName = value.substring(1);
-            const fieldValue = getFieldValue(currentFormValues, fieldName);
+      const data = await executeScript({
+        retrieverPath: props.retrieverPath,
+        retrieverParams: props.retrieverParams,
+        formValues: formValuesRef.current,
+        parseJSON: false,
+	environment: environment,
+        onError: props.setError
+      });
 
-            if (fieldValue !== undefined) {
-              params.append(key, JSON.stringify(fieldValue));
-            }
-          } else {
-            params.append(key, JSON.stringify(value));
-          }
-        });
-      }
-
-      const queryString = params.toString();
-      const requestUrl = `${document.dashboard_url}/jobs/composer/evaluate_dynamic_text?retriever_path=${encodeURIComponent(props.retrieverPath)}${queryString ? `&${queryString}` : ''}`;
-
-      const response = await fetch(requestUrl);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        props.setError?.({
-          message: errorData.message || 'Failed to execute script',
-          status_code: response.status,
-          details: errorData.details || errorData
-        });
-        return;
-      }
-
-      const data = await response.text();
       setValue(data);
     } catch (err) {
       console.error("Error executing hidden script:", err);
       setError(err.message || "Failed to execute script");
-      if (props.setError) {
-        props.setError(err);
-      }
     } finally {
       setIsLoading(false);
     }
-  }, [props.retrieverPath, props.retrieverParams, props.setError]);
+  }, [props.retrieverPath, props.retrieverParams, props.setError, props.value]);
 
   const debouncedExecuteScript = useCallback(
     (() => {
@@ -127,12 +100,12 @@ function Hidden(props) {
         if (timeout) clearTimeout(timeout);
 
         timeout = setTimeout(() => {
-          executeScript();
+          executeScriptCallback();
           timeout = null;
         }, 300); 
       };
     })(),
-    [executeScript] 
+    [executeScriptCallback] 
   );
 
   useEffect(() => {
@@ -147,7 +120,7 @@ function Hidden(props) {
       return;
     }
 
-    executeScript();
+    executeScriptCallback();
 
     if (props.refreshInterval && props.refreshInterval > 0) {
       refreshTimerRef.current = setInterval(() => {
@@ -160,7 +133,7 @@ function Hidden(props) {
         clearInterval(refreshTimerRef.current);
       }
     };
-  }, [props.retrieverPath, props.value, props.refreshInterval, debouncedExecuteScript, executeScript]);
+  }, [props.retrieverPath, props.value, props.refreshInterval, debouncedExecuteScript, executeScriptCallback]);
 
   const prevRelevantValuesRef = useRef({});
   
