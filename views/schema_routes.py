@@ -274,7 +274,7 @@ def evaluate_script_route():
 
     # All other query params become environment variables
     env_vars = {
-        k.upper(): v
+        k: v
         for k, v in request.args.items()
         if k not in ["retriever_path"]
     }
