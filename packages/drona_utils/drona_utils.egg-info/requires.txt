@@ -1,5 +1,0 @@
-
-[dev]
-pytest
-black
-flake8
