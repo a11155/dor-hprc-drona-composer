@@ -135,10 +135,10 @@ function JobComposer({
       }
 
       const location = formData.get("location");
-      console.log("LOCATION1: ", location)
+      // console.log("LOCATION1: ", location)
       if (!location) {
         if (props.runLocation) formData.set("location", props.runLocation);
-        console.log("LOCATION2: ", props.runLocation)
+        // console.log("LOCATION2: ", props.runLocation)
       }
 
       return formData;
