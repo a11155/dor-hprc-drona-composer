@@ -22,6 +22,7 @@ import DynamicRadioGroup from "./DynamicRadioGroup";
 import CheckboxGroup from "./CheckboxGroup";
 import DynamicCheckboxGroup from "./DynamicCheckboxGroup";
 import DynamicViewer from "./DynamicViewer";
+import Container from "./Container";
 
 export {
 	Text,
@@ -48,6 +49,7 @@ export {
 	DynamicRadioGroup,
 	CheckboxGroup,
 	DynamicCheckboxGroup,
+	Container,
 	DynamicViewer
 }
 
@@ -74,9 +76,10 @@ export const componentsMap = {
 	dynamicRadioGroup: DynamicRadioGroup,
 	checkboxGroup: CheckboxGroup,
 	dynamicCheckboxGroup: DynamicCheckboxGroup,
-	dynamicViewer: DynamicViewer
+	dynamicViewer: DynamicViewer,
+	container: Container
 
 };
 
-export const Containers = ["rowContainer", "collapsibleRowContainer", "collapsibleColContainer", "dragDropContainer", "jobNameLocation"];
+export const Containers = ["rowContainer", "container", "collapsibleRowContainer", "collapsibleColContainer", "dragDropContainer", "jobNameLocation"];
 
