@@ -39,6 +39,7 @@ const sidebars = {
         'environments/map',
         'environments/user-workflows',
         'environments/publishing',
+	'environments/retriever-scripts'
       ],
     },
   ],

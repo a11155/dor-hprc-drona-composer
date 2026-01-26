@@ -11,7 +11,3 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest", "black", "flake8"]
-
-[project.scripts]
-drona = "drona_utils.cli:main"
-
