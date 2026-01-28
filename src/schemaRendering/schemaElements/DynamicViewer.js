@@ -1,5 +1,52 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+/**
+ * @name DynamicViewer
+ * @description A sandboxed iframe-based viewer component that can load external CDN libraries
+ * and execute custom initialization code. Supports dynamic data fetching via retriever scripts.
+ *
+ * @example
+ * // Static data viewer
+ * {
+ *   "type": "dynamicViewer",
+ *   "name": "proteinViewer",
+ *   "value": {
+ *     "title": "Protein Viewer",
+ *     "cdnLibraries": ["https://3dmol.csb.pitt.edu/build/3Dmol-min.js"],
+ *     "initCode": "// Use data variable",
+ *     "data": { "pdbId": "1CRN" }
+ *   }
+ * }
+ *
+ * @example
+ * // Dynamic data viewer with retriever
+ * {
+ *   "type": "dynamicViewer",
+ *   "name": "proteinViewer",
+ *   "retriever": "retrievers/fetch_protein.sh",
+ *   "retrieverParams": { "proteinId": "$selectedProtein" },
+ *   "value": {
+ *     "title": "Protein Viewer",
+ *     "cdnLibraries": ["https://3dmol.csb.pitt.edu/build/3Dmol-min.js"],
+ *     "initCode": "// data variable contains fetched result"
+ *   }
+ * }
+ *
+ * @property {string} name - Component name for form submission
+ * @property {string} [retriever] - Path to retriever script for dynamic data
+ * @property {string} [retrieverPath] - Alias for retriever
+ * @property {Object} [retrieverParams] - Parameters with $fieldName references for dynamic values
+ * @property {Object} value - Viewer configuration object
+ * @property {string} [value.title] - Title displayed in card header
+ * @property {string} [value.description] - Description shown under title
+ * @property {string|string[]} [value.cdnLibraries] - CDN URLs to load (must be from approved sources)
+ * @property {string} [value.initCode] - JavaScript code to execute in iframe
+ * @property {Object} [value.data] - Static data passed to initCode (overridden by retriever)
+ * @property {string} [value.height="600px"] - Iframe height
+ * @property {string} [value.footer] - Footer text
+ */
+
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import FormElementWrapper from "../utils/FormElementWrapper";
+import { useRetriever } from "../hooks";
 
 const SECURITY_CONFIG = {
   MAX_MEMORY_MB: 150,
@@ -63,9 +110,56 @@ function DynamicViewer(props) {
   const [securityBlock, setSecurityBlock] = useState(null);
   const iframeRef = useRef(null);
   const initializedRef = useRef(false);
+  const prevDataRef = useRef(null);
 
-  const config = props.value ?
-    (typeof props.value === 'string' ? JSON.parse(props.value) : props.value) : {};
+  // Parse static config from props.value
+  const staticConfig = useMemo(() => {
+    if (!props.value) return {};
+    return typeof props.value === 'string' ? JSON.parse(props.value) : props.value;
+  }, [props.value]);
+
+  // Get retriever config from props (can be at top level or inside value)
+  const retrieverPath = props.retrieverPath || props.retriever || staticConfig.retriever;
+
+  // Memoize retrieverParams to avoid creating new object on every render
+  const retrieverParams = useMemo(() => {
+    return props.retrieverParams || staticConfig.retrieverParams || null;
+  }, [props.retrieverParams, staticConfig.retrieverParams]);
+
+  // Use retriever hook for dynamic data fetching
+  const {
+    data: dynamicData,
+    isLoading: isRetrieverLoading,
+    isEvaluated: isRetrieverEvaluated,
+    error: retrieverError,
+  } = useRetriever({
+    retrieverPath,
+    retrieverParams,
+    initialData: null,
+    parseJSON: true,
+    isShown: props.isShown !== false,
+    fetchOnMount: !!retrieverPath,
+    onError: props.setError,
+  });
+
+  // Merge static config with dynamic data
+  const config = useMemo(() => {
+    if (!retrieverPath) {
+      // No retriever - use static config as-is
+      return staticConfig;
+    }
+
+    if (!isRetrieverEvaluated || isRetrieverLoading) {
+      // Still loading - use static config but mark as loading
+      return staticConfig;
+    }
+
+    // Merge dynamic data into config
+    return {
+      ...staticConfig,
+      data: dynamicData !== null ? dynamicData : (staticConfig.data || {}),
+    };
+  }, [staticConfig, retrieverPath, dynamicData, isRetrieverEvaluated, isRetrieverLoading]);
 
   // Validate CDNs immediately
   const cdnValidation = validateCDNs(config.cdnLibraries);
@@ -101,18 +195,24 @@ function DynamicViewer(props) {
     };
   }, [hasBlockedCDNs, cdnValidation.blocked]);
 
-  const setIframeRef = useCallback((node) => {
-    if (node && !initializedRef.current && !hasBlockedCDNs) {
-      iframeRef.current = node;
-      initializedRef.current = true;
-      setTimeout(() => initViewer(), 50);
-    }
-  }, [hasBlockedCDNs]);
+  // Determine if we should show loading state (either retriever loading or iframe loading)
+  const showRetrieverLoading = retrieverPath && isRetrieverLoading;
 
-  const initViewer = () => {
+  // Use ref to store current config for use in callbacks without causing re-renders
+  const configRef = useRef(config);
+  const cdnValidationRef = useRef(cdnValidation);
+
+  useEffect(() => {
+    configRef.current = config;
+    cdnValidationRef.current = cdnValidation;
+  }, [config, cdnValidation]);
+
+  // Stable initViewer function that reads from refs
+  const initViewer = useCallback(() => {
     if (!iframeRef.current) return;
 
-    const html = generateHTML(config, cdnValidation.valid);
+    setStatus('loading');
+    const html = generateHTML(configRef.current, cdnValidationRef.current.valid);
     if (!html) {
       setError('Failed to generate viewer HTML');
       setStatus('error');
@@ -120,7 +220,38 @@ function DynamicViewer(props) {
     }
 
     iframeRef.current.srcdoc = html;
-  };
+  }, []); // No dependencies - uses refs
+
+  const setIframeRef = useCallback((node) => {
+    if (node && !hasBlockedCDNs) {
+      iframeRef.current = node;
+    }
+  }, [hasBlockedCDNs]);
+
+  // Initialize iframe when ready (no retriever, or retriever finished)
+  useEffect(() => {
+    if (!iframeRef.current || hasBlockedCDNs || initializedRef.current) return;
+
+    const shouldInit = !retrieverPath || isRetrieverEvaluated;
+    if (shouldInit) {
+      initializedRef.current = true;
+      setTimeout(() => initViewer(), 50);
+    }
+  }, [retrieverPath, isRetrieverEvaluated, hasBlockedCDNs, initViewer]);
+
+  // Re-initialize iframe when dynamic data changes
+  useEffect(() => {
+    if (!retrieverPath || !iframeRef.current || hasBlockedCDNs) return;
+
+    // Only re-initialize if data has actually changed
+    const currentDataString = JSON.stringify(config.data);
+    if (prevDataRef.current !== null && prevDataRef.current !== currentDataString) {
+      // Data changed - re-initialize the viewer
+      setStatus('loading');
+      initViewer();
+    }
+    prevDataRef.current = currentDataString;
+  }, [config.data, retrieverPath, hasBlockedCDNs, initViewer]);
 
   const generateHTML = (cfg, validLibs) => {
     const origins = [...new Set(validLibs.map(u => new URL(u).origin))].join(' ');
@@ -246,17 +377,13 @@ function DynamicViewer(props) {
         )}
 
         <div className="card-body p-0" style={{ position: 'relative' }}>
-          {status === 'loading' && (
+          {(status === 'loading' || showRetrieverLoading) && (
             <div style={{
               position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               backgroundColor: 'white', zIndex: 10
             }}>
-              <div className="text-center">
-                <div className="spinner-border text-primary" role="status">
-                  <span className="visually-hidden">Loading...</span>
-                </div>
-                <p className="mt-2 text-muted">Loading viewer...</p>
+              <div className="spinner-border text-primary" role="status">
               </div>
             </div>
           )}
@@ -279,7 +406,13 @@ function DynamicViewer(props) {
             </div>
           )}
 
-          {!hasBlockedCDNs && (
+          {retrieverError && !isRetrieverLoading && (
+            <div className="alert alert-danger m-3">
+              <strong>Data Loading Error:</strong> {retrieverError.message || 'Failed to load data'}
+            </div>
+          )}
+
+          {!hasBlockedCDNs && (!retrieverPath || isRetrieverEvaluated) && (
             <iframe
               ref={setIframeRef}
               sandbox="allow-scripts"
