@@ -77,7 +77,8 @@ export const componentsMap = {
 	checkboxGroup: CheckboxGroup,
 	dynamicCheckboxGroup: DynamicCheckboxGroup,
 	dynamicViewer: DynamicViewer,
-	container: Container
+	container: Container,
+	hidden: Hidden
 
 };
 

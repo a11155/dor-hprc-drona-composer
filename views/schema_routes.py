@@ -131,7 +131,15 @@ def convert_jsonref_to_dict(obj):
     """
     if hasattr(obj, '__iter__') and hasattr(obj, 'keys'):
         # It's a dict-like object (including JsonRef)
-        return {key: convert_jsonref_to_dict(value) for key, value in obj.items()}
+        result = {key: convert_jsonref_to_dict(value) for key, value in obj.items()}
+
+        # If this is a JsonRef proxy, sibling properties from __reference__ override resolved content
+        if hasattr(obj, '__reference__') and isinstance(obj.__reference__, dict):
+            for key, value in obj.__reference__.items():
+                if key != '$ref':
+                    result[key] = convert_jsonref_to_dict(value)
+
+        return result
     elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes)):
         # It's a list-like object
         return [convert_jsonref_to_dict(item) for item in obj]
