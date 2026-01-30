@@ -58,9 +58,11 @@ export function App() {
   //   console.log("dronaJobId changed ->", dronaJobId);
   // }, [dronaJobId]);
 
-  // useEffect(() => {
-  //   console.log("environment changed ->", environment);
-  // }, [environment]);
+  useEffect(() => {
+    console.log("environment changed ->", environment);
+    setBaseRunLocation(defaultRunLocation);
+    setRunLocation(defaultRunLocation);
+  }, [environment]);
 
   useEffect(() => {
     if (!pendingNewPreview) return;
@@ -305,18 +307,13 @@ export function App() {
 
     }
 
-    //Handle the case where name and location does not exist in the form
-    const name = formData.get("name");
-    if (!name) {
-      if (dronaJobId) formData.set("name", dronaJobId);
-    }
-
+    //Handle the case where name and location does not exist in the form meaning jobNameLocation is omitted
     const location = formData.get("location");
-    // console.log("LOCATION1: ", location)
+    console.log("HERE IS THE Location: ", location);
 
-    if (!location) {
+    if (location == null) {
       if (runLocation) formData.set("location", runLocation);
-      // console.log("LOCATION2: ", runLocation)
+      console.log("HERE IS THE NEW Location: ", formData.get("location"));
     }
 
 

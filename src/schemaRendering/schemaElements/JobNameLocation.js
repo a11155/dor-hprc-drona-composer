@@ -64,6 +64,7 @@ export default function JobNameLocation({
     setBaseRunLocation,
     setLocationPickedByUser,
     onChange,              // forwarded from FieldRenderer (handleValueChange wrapper)
+    environment,
     ...rest
 }) {
 
@@ -78,8 +79,15 @@ export default function JobNameLocation({
         return a0;
     };
 
+    useEffect(() => {
+        console.log("environment changed ->", environment);
+    }, [environment]);
 
     useEffect(() => {
+        console.log("customJobLocation changed ->", customJobLocation);
+        console.log("customJobName changed ->", customJobName);
+
+
         if (customJobLocation) {
             setRunLocation?.(customJobLocation);
             // onChange?.("location", customJobLocation);
@@ -90,7 +98,7 @@ export default function JobNameLocation({
         }
 
         didInit.current = true;
-    }, []);
+    }, [environment]);
 
     const handleLocationChange = (...args) => {
         const val = extractValue(args);
@@ -103,7 +111,6 @@ export default function JobNameLocation({
         // Keep existing behavior (update form state via FieldRenderer)
         onChange?.(...args);
 
-        // If you also want to keep external runLocation state in sync:
         if (val !== undefined) setRunLocation?.(val);
     };
 
