@@ -91,11 +91,11 @@ const Composer = forwardRef((props, ref) => {
 
 
   // Handle value changes
-  const handleValueChange = (fieldName, value) => {
+  const handleValueChange = (fieldName, value, { silent } = {}) => {
 
     // If user choose the location themselves, mark as user-picked
     // console.log("Change location:" + fieldName + " values: " + value);
-    if (fieldName === "location") {
+    if (fieldName === "location" && !silent) {
       props.setLocationPickedByUser?.(true);
     }
 
@@ -235,6 +235,7 @@ const Composer = forwardRef((props, ref) => {
           setBaseRunLocation: props.setBaseRunLocation,
           setLocationPickedByUser: props.setLocationPickedByUser,
           environment: props.environment,
+          setFieldValue: handleValueChange,
         }}
       />
     </FormValuesContext.Provider>

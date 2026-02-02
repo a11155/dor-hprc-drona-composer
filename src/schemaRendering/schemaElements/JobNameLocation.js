@@ -39,7 +39,7 @@
  * @property {boolean} [labelOnTop=true] - Whether to position label above the fields
  */
 
-import React, { useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import FormElementWrapper from "../utils/FormElementWrapper";
 import Text from "../schemaElements/Text";
 import Picker from "../schemaElements/Picker";
@@ -65,8 +65,12 @@ export default function JobNameLocation({
     setLocationPickedByUser,
     onChange,              // forwarded from FieldRenderer (handleValueChange wrapper)
     environment,
+    setFieldValue,
     ...rest
 }) {
+
+    const [jobName, setJobName] = useState(customJobName ?? "");
+
 
     //protect against marking "picked" due to any initialization calls
     const didInit = useRef(false);
@@ -84,21 +88,37 @@ export default function JobNameLocation({
     }, [environment]);
 
     useEffect(() => {
+        // console.log("environment changed ->", environment);
         console.log("customJobLocation changed ->", customJobLocation);
         console.log("customJobName changed ->", customJobName);
 
+    }, [customJobLocation, customJobName]);
 
+    useEffect(() => {
+        // wait until env is set (optional safety)
+        if (!environment?.env || !environment?.src) return;
+
+        // treat env/schema update as init
+        didInit.current = false;
+
+        // IMPORTANT:
+        // Only apply schema defaults if they exist.
+        // If the new schema doesn't include customJobLocation, it will be undefined.
         if (customJobLocation) {
             setRunLocation?.(customJobLocation);
-            // onChange?.("location", customJobLocation);
+            setFieldValue?.("location", customJobLocation, { silent: true });
         }
-        if (customJobName) {
-            sync_job_name?.(customJobName, customJobLocation);
-            // onChange?.("name", customJobName);
+
+        const resetName = customJobName ?? "";
+        setJobName(resetName);
+        setFieldValue?.("name", resetName);
+
+        if (resetName) {
+            sync_job_name?.(resetName, customJobLocation, { force: true });
         }
 
         didInit.current = true;
-    }, [environment]);
+    }, [environment?.env, environment?.src, customJobLocation, customJobName]);
 
     const handleLocationChange = (...args) => {
         const val = extractValue(args);
@@ -109,10 +129,19 @@ export default function JobNameLocation({
         }
 
         // Keep existing behavior (update form state via FieldRenderer)
-        onChange?.(...args);
+        if (val !== undefined) setFieldValue?.("location", val);
 
+        // keep external runLocation in sync
         if (val !== undefined) setRunLocation?.(val);
     };
+
+    const handleNameChange = (...args) => {
+        const val = extractValue(args) ?? "";
+        setJobName(val);
+        setFieldValue?.("name", val);          //  update real field
+        sync_job_name?.(val, runLocation);
+    };
+
 
     return (
         <FormElementWrapper
@@ -130,10 +159,10 @@ export default function JobNameLocation({
                                 name={"name"}
                                 id={"job-name"}
                                 label=""
-                                value={customJobName || ""}
+                                value={jobName}
                                 useLabel={false}              // suppress inner label; we render our own
                                 onNameChange={sync_job_name}   // mirrors previous inline behavior
-                                onChange={onChange}
+                                onChange={handleNameChange}
                                 placeholder="Drona ID"
                                 disableChange={disableJobNameChange}
 

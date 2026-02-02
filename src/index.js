@@ -62,6 +62,7 @@ export function App() {
     console.log("environment changed ->", environment);
     setBaseRunLocation(defaultRunLocation);
     setRunLocation(defaultRunLocation);
+    setLocationPickedByUser(false);
   }, [environment]);
 
   useEffect(() => {
@@ -92,8 +93,9 @@ export function App() {
       });
   }, []);
 
-  function sync_job_name(name, customRunLocation) {
-    if (!locationPickedByUser) {
+  function sync_job_name(name, customRunLocation, options = {}) {
+    const { force = false } = options;
+    if (!locationPickedByUser || force) {
       // console.log(customRunLocation)
       const preferredLocation = customRunLocation || baseRunLocation;
       // console.log("here is the run location " + baseRunLocation)
