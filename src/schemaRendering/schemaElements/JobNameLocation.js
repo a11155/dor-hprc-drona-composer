@@ -83,25 +83,24 @@ export default function JobNameLocation({
         return a0;
     };
 
-    useEffect(() => {
-        console.log("environment changed ->", environment);
-    }, [environment]);
+    // useEffect(() => {
+    //     console.log("environment changed ->", environment);
+    // }, [environment]);
+
+    // useEffect(() => {
+    //     // console.log("environment changed ->", environment);
+    //     console.log("customJobLocation changed ->", customJobLocation);
+    //     console.log("customJobName changed ->", customJobName);
+
+    // }, [customJobLocation, customJobName]);
 
     useEffect(() => {
-        // console.log("environment changed ->", environment);
-        console.log("customJobLocation changed ->", customJobLocation);
-        console.log("customJobName changed ->", customJobName);
-
-    }, [customJobLocation, customJobName]);
-
-    useEffect(() => {
-        // wait until env is set (optional safety)
+        // wait until env is set
         if (!environment?.env || !environment?.src) return;
 
         // treat env/schema update as init
         didInit.current = false;
 
-        // IMPORTANT:
         // Only apply schema defaults if they exist.
         // If the new schema doesn't include customJobLocation, it will be undefined.
         if (customJobLocation) {
@@ -109,12 +108,12 @@ export default function JobNameLocation({
             setFieldValue?.("location", customJobLocation, { silent: true });
         }
 
-        const resetName = customJobName ?? "";
-        setJobName(resetName);
-        setFieldValue?.("name", resetName);
+        const newName = customJobName ?? "";
+        setJobName(newName);
+        setFieldValue?.("name", newName);
 
-        if (resetName) {
-            sync_job_name?.(resetName, customJobLocation, { force: true });
+        if (newName) {
+            sync_job_name?.(newName, customJobLocation, { force: true });
         }
 
         didInit.current = true;

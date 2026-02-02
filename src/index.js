@@ -59,7 +59,7 @@ export function App() {
   // }, [dronaJobId]);
 
   useEffect(() => {
-    console.log("environment changed ->", environment);
+    // console.log("environment changed ->", environment);
     setBaseRunLocation(defaultRunLocation);
     setRunLocation(defaultRunLocation);
     setLocationPickedByUser(false);
@@ -311,11 +311,11 @@ export function App() {
 
     //Handle the case where name and location does not exist in the form meaning jobNameLocation is omitted
     const location = formData.get("location");
-    console.log("HERE IS THE Location: ", location);
+    // console.log("HERE IS THE Location: ", location);
 
     if (location == null) {
       if (runLocation) formData.set("location", runLocation);
-      console.log("HERE IS THE NEW Location: ", formData.get("location"));
+      // console.log("HERE IS THE NEW Location: ", formData.get("location"));
     }
 
 

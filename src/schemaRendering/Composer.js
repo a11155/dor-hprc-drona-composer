@@ -85,9 +85,9 @@ const Composer = forwardRef((props, ref) => {
     }
   }, [props.fields, props.setError]);
 
-  useEffect(() => {
-    console.log("locationPickedByUser changed ->", props.locationPickedByUser);
-  }, [props.locationPickedByUser]);
+  // useEffect(() => {
+  //   console.log("locationPickedByUser changed ->", props.locationPickedByUser);
+  // }, [props.locationPickedByUser]);
 
 
   // Handle value changes
