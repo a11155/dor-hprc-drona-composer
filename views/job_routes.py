@@ -116,12 +116,15 @@ def preview_job_route():
             return os.path.dirname(norm)
         return path
 
-    def ensure_id_appended(base: str, job_id: str):
-        """Append /job_id once (avoid repeated nesting)."""
+    def ensure_component_appended(base: str, component: str):
+        """Append /component once (avoid repeated nesting)."""
         base = os.path.normpath((base or "").strip())
-        if os.path.basename(base) == job_id:
+        component = (component or "").strip()
+        if not component:
             return base
-        return os.path.join(base, job_id)
+        if os.path.basename(base) == component:
+            return base
+        return os.path.join(base, component)
 
     # 1) Inputs / flags
     user_picked_location = parse_bool(params.get("user_picked_location", False))
@@ -133,7 +136,8 @@ def preview_job_route():
     if not drona.get("ok"):
         raise APIError("Drona not configured", status_code=400, details=drona.get("reason"))
 
-    location_in = os.path.join(drona["drona_dir"], "runs")
+    if not location_in:
+        location_in = os.path.join(drona["drona_dir"], "runs")
 
     # 2) Decide drona_job_id
     if old_id and not is_deprecated:
@@ -147,21 +151,19 @@ def preview_job_route():
     auto_named = not user_provided_name
 
     # 4) Set name
-    params["name"] = drona_job_id if auto_named else name_in
+    effective_name = drona_job_id if auto_named else name_in
+    params["name"] = effective_name
 
-    # 5) Decide whether to append id into location
-    # Rule: if user picked location OR user provided name => don't append id
-    should_append = auto_named and (not user_picked_location)
-
+    # 5) Decide location
+    # Rule: if user picked location => honor it; otherwise append name (if provided) or drona_job_id
     location_effective = location_in
 
-    if should_append:
-        # If deprecated reset, location might end with old_id from older previews → strip it once
+    if not user_picked_location:
+        # If deprecated reset, location might end with old_id from older previews then strip the old id away
         if is_deprecated and old_id:
             location_effective = strip_trailing_component(location_effective, old_id)
 
-        # Now ensure current id appended (once)
-        location_effective = ensure_id_appended(location_effective, drona_job_id)
+        location_effective = ensure_component_appended(location_effective, effective_name)
 
     params["location"] = location_effective
 
