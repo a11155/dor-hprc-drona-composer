@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: drona_utils
-Version: 0.1.0
-Summary: Utility functions for Drona composer system
-Requires-Python: >=3.6
-Provides-Extra: dev
-Requires-Dist: pytest; extra == "dev"
-Requires-Dist: black; extra == "dev"
-Requires-Dist: flake8; extra == "dev"

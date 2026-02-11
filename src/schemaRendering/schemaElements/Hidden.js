@@ -29,102 +29,81 @@
  * @property {function} [setError] - Function to handle errors during script execution
  */
 
-import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from "react";
+import React, { useEffect, useRef, useContext, useMemo } from "react";
 import { FormValuesContext } from "../FormValuesContext";
-import { getFieldValue } from "../utils/fieldUtils";
-import { executeScript } from "../utils/utils";
+import { useRetriever } from "../hooks";
 
 function Hidden(props) {
-  const [value, setValue] = useState(props.value || "");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const refreshTimerRef = useRef(null);
+  const { updateValue } = useContext(FormValuesContext);
 
-  const { values: formValues, updateValue, environment } = useContext(FormValuesContext);
-  
-  const formValuesRef = useRef(formValues);
-  
+  // Get retriever config from props
+  const retrieverPath = props.retrieverPath || props.retriever;
+
+  // Memoize retrieverParams to avoid creating new object on every render
+  const retrieverParams = useMemo(() => {
+    return props.retrieverParams || null;
+  }, [props.retrieverParams]);
+
+  // Use retriever hook for dynamic data fetching
+  const {
+    data: dynamicData,
+    isEvaluated,
+    refetch,
+  } = useRetriever({
+    retrieverPath,
+    retrieverParams,
+    initialData: null,
+    parseJSON: false, // Hidden typically returns raw text
+    isShown: true, // Always shown (it's hidden but active)
+    fetchOnMount: !!retrieverPath,
+    onError: props.setError,
+  });
+
+  // Determine the current value
+  const value = useMemo(() => {
+    if (!retrieverPath) {
+      // No retriever - use static value
+      return props.value || "";
+    }
+    // Use dynamic data if available, otherwise fall back to static value
+    return dynamicData !== null ? dynamicData : (props.value || "");
+  }, [retrieverPath, dynamicData, props.value]);
+
+  // Refs for stable callbacks
+  const updateValueRef = useRef(updateValue);
+  const prevValueRef = useRef(null);
+  const refreshTimerRef = useRef(null);
+  const refetchRef = useRef(refetch);
+
   useEffect(() => {
-    formValuesRef.current = formValues;
-  }, [formValues]);
+    updateValueRef.current = updateValue;
+  }, [updateValue]);
+
+  useEffect(() => {
+    refetchRef.current = refetch;
+  }, [refetch]);
 
   // Update form context whenever value changes (for conditional logic)
   useEffect(() => {
-    if (updateValue && props.name) {
-      updateValue(props.name, value);
+    // Only update if value actually changed to prevent infinite loops
+    if (updateValueRef.current && props.name && prevValueRef.current !== value) {
+      prevValueRef.current = value;
+      updateValueRef.current(props.name, value);
     }
-  }, [value, updateValue, props.name]);
+  }, [value, props.name]);
 
-  const relevantFieldNames = useMemo(() => {
-    if (!props.retrieverParams) return [];
-
-    return Object.values(props.retrieverParams)
-      .filter(value => typeof value === 'string' && value.startsWith('$'))
-      .map(value => value.substring(1));
-  }, [props.retrieverParams]);
-
-  const executeScriptCallback = useCallback(async () => {
-    if (!props.retrieverPath) {
-      // For static values, just set the value (no script execution)
-      setValue(props.value || "");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const data = await executeScript({
-        retrieverPath: props.retrieverPath,
-        retrieverParams: props.retrieverParams,
-        formValues: formValuesRef.current,
-        parseJSON: false,
-	environment: environment,
-        onError: props.setError
-      });
-
-      setValue(data);
-    } catch (err) {
-      console.error("Error executing hidden script:", err);
-      setError(err.message || "Failed to execute script");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [props.retrieverPath, props.retrieverParams, props.setError, props.value]);
-
-  const debouncedExecuteScript = useCallback(
-    (() => {
-      let timeout = null;
-
-      return () => {
-        if (timeout) clearTimeout(timeout);
-
-        timeout = setTimeout(() => {
-          executeScriptCallback();
-          timeout = null;
-        }, 300); 
-      };
-    })(),
-    [executeScriptCallback] 
-  );
-
+  // Handle refresh interval for periodic re-fetching
   useEffect(() => {
+    // Clear any existing timer
     if (refreshTimerRef.current) {
       clearInterval(refreshTimerRef.current);
       refreshTimerRef.current = null;
     }
 
-    if (!props.retrieverPath) {
-      // Just set static value and return
-      setValue(props.value || "");
-      return;
-    }
-
-    executeScriptCallback();
-
-    if (props.refreshInterval && props.refreshInterval > 0) {
+    // Only set up refresh interval if we have a retriever and interval is specified
+    if (retrieverPath && props.refreshInterval && props.refreshInterval > 0) {
       refreshTimerRef.current = setInterval(() => {
-        debouncedExecuteScript();
+        refetchRef.current();
       }, props.refreshInterval * 1000);
     }
 
@@ -133,31 +112,7 @@ function Hidden(props) {
         clearInterval(refreshTimerRef.current);
       }
     };
-  }, [props.retrieverPath, props.value, props.refreshInterval, debouncedExecuteScript, executeScriptCallback]);
-
-  const prevRelevantValuesRef = useRef({});
-  
-  useEffect(() => {
-    if (!props.retrieverPath || !props.retrieverParams || relevantFieldNames.length === 0) {
-      return;
-    }
-    
-    let hasRelevantValueChanged = false;
-    
-    for (const fieldName of relevantFieldNames) {
-      const currentValue = getFieldValue(formValues, fieldName);
-      const previousValue = prevRelevantValuesRef.current[fieldName];
-      
-      if (currentValue !== previousValue) {
-        hasRelevantValueChanged = true;
-        prevRelevantValuesRef.current[fieldName] = currentValue;
-      }
-    }
-    
-    if (hasRelevantValueChanged) {
-      debouncedExecuteScript();
-    }
-  }, [formValues, props.retrieverPath, props.retrieverParams, relevantFieldNames, debouncedExecuteScript]);
+  }, [retrieverPath, props.refreshInterval]);
 
   // Return absolutely nothing - completely hidden
   return null;

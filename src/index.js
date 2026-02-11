@@ -305,6 +305,21 @@ export function App() {
 
     }
 
+    //Handle the case where name and location does not exist in the form
+    const name = formData.get("name");
+    if (!name) {
+      if (dronaJobId) formData.set("name", dronaJobId);
+    }
+
+    const location = formData.get("location");
+    // console.log("LOCATION1: ", location)
+
+    if (!location) {
+      if (runLocation) formData.set("location", runLocation);
+      // console.log("LOCATION2: ", runLocation)
+    }
+
+
     if (!formData.has("runtime")) {
       alert("Environment is required.");
       return;
@@ -319,10 +334,10 @@ export function App() {
 
     const action = document.dashboard_url + "/jobs/composer/preview";
 
-    console.log("FormData: ")
-    for (const [key, value] of formData.entries()) {
-      console.log(key, value);
-    }
+    // console.log("FormData: ")
+    // for (const [key, value] of formData.entries()) {
+    //   console.log(key, value);
+    // }
 
     preview_job(action, formData, function (error, jobScript) {
       if (error) {

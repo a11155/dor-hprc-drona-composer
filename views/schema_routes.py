@@ -42,24 +42,29 @@ def execute_script(
     if not retriever_path:
         raise APIError(f"{script_type} script path is required", status_code=400)
 
-    # Check if path exists
-    if not os.path.exists(retriever_path):
-        raise APIError(
-            f"{script_type} script not found",
-            status_code=404,
-            details={"path": retriever_path}
-        )
+    final_retriever_path = retriever_path
+    if not os.path.isabs(retriever_path):
+        final_retriever_path = os.path.join(env_vars["DRONA_ENV_DIR"], retriever_path)
+
+    if not os.path.exists(final_retriever_path):
+        fallback_path = os.path.join(get_runtime_dir(), "retriever_scripts", retriever_path)
+        if os.path.exists(fallback_path):
+            final_retriever_path = fallback_path
+        else:
+            raise APIError(
+                f"{script_type} script not found in any of the searched paths",
+                status_code=404,
+                details={"path 1": final_retriever_path, "path 2": fallback_path}
+            )
     
-    # Get directory and script name
+    retriever_path = final_retriever_path
     retriever_dir = os.path.dirname(os.path.abspath(retriever_path))
     retriever_script = os.path.basename(retriever_path)
     
-    # Build command
     cmd = f"bash {retriever_script}"
     if additional_args:
         cmd += " " + " ".join(additional_args)
     
-    # Prepare environment variables
     execution_env = os.environ.copy()
 
     execution_env["DRONA_RUNTIME_DIR"] = get_runtime_dir() 
@@ -74,7 +79,6 @@ def execute_script(
         execution_env.update(env_vars)
     
     try:
-        # Execute the script
         result = subprocess.run(
             cmd,
             shell=True,
@@ -131,7 +135,15 @@ def convert_jsonref_to_dict(obj):
     """
     if hasattr(obj, '__iter__') and hasattr(obj, 'keys'):
         # It's a dict-like object (including JsonRef)
-        return {key: convert_jsonref_to_dict(value) for key, value in obj.items()}
+        result = {key: convert_jsonref_to_dict(value) for key, value in obj.items()}
+
+        # If this is a JsonRef proxy, sibling properties from __reference__ override resolved content
+        if hasattr(obj, '__reference__') and isinstance(obj.__reference__, dict):
+            for key, value in obj.__reference__.items():
+                if key != '$ref':
+                    result[key] = convert_jsonref_to_dict(value)
+
+        return result
     elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes)):
         # It's a list-like object
         return [convert_jsonref_to_dict(item) for item in obj]
@@ -152,11 +164,6 @@ def get_schema_route(environment):
     
     base_path = os.path.join(env_dir, environment)
 
-    #if env_dir is None:
-     #   base_path = os.path.join('environments', environment)
-    #else:
-     #   base_path = os.path.join(env_dir, environment)
-
     schema_path = os.path.join(base_path, "schema.json")
     if os.path.exists(schema_path):
         schema_data = open(schema_path, 'r').read()
@@ -175,11 +182,13 @@ def get_schema_route(environment):
 
     for key, element in iterate_schema(schema_dict):
         if "retriever" in element:
+            # This whole iteration is unnecessary please refactor this sometime
             retriever_path = element["retriever"]
-            if not os.path.isabs(retriever_path):
-                retriever_path = os.path.join(env_dir, environment, retriever_path)
             element["retrieverPath"] = retriever_path
+            #if not os.path.isabs(retriever_path):
+            #    retriever_path = os.path.join(env_dir, environment, retriever_path)
 
+        # Most likely unnecessary, please check
         if element["type"] == "dynamicSelect":
             element["isEvaluated"] = False
             element["isShown"] = False

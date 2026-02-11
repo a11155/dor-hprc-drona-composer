@@ -114,6 +114,7 @@ function JobComposer({
       });
 
       formData.append("additional_files", JSON.stringify(additional_files));
+
       if (props.environment && props.environment.src) {
         formData.append("env_dir", props.environment.src);
         formData.append("env_name", props.environment.env);
@@ -128,16 +129,28 @@ function JobComposer({
       // For new jobs, include drona_job_id from preview if available
       formData.set("drona_job_id", dronaJobId);
 
+      const name = formData.get("name");
+      if (!name) {
+        if (dronaJobId) formData.set("name", dronaJobId);
+      }
+
+      const location = formData.get("location");
+      // console.log("LOCATION1: ", location)
+      if (!location) {
+        if (props.runLocation) formData.set("location", props.runLocation);
+        // console.log("LOCATION2: ", props.runLocation)
+      }
+
       return formData;
     }
   }
-  
+
 
   const handlePreview = () => {
     // Validate required fields before showing preview
     if (!props.environment || !props.environment.env) {
-    setError("Please choose an environment before preview.");
-    return;
+      setError("Please choose an environment before preview.");
+      return;
     }
     if (props.composerRef?.current) {
       const currentFields = props.composerRef.current.getFields();
@@ -184,8 +197,8 @@ function JobComposer({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!props.environment || !props.environment.env) {
-    setError("Please choose an environment before submitting.");
-    return;
+      setError("Please choose an environment before submitting.");
+      return;
     }
 
     // Block submission if job is already running
@@ -245,85 +258,85 @@ function JobComposer({
 
         <div className="card-body" style={{ overflowY: 'auto', flex: '1 1 auto' }}>
 
-	  <ConfigGate onStatusChange={setConfigBlocked} />
-	  
-        {!configBlocked && (
-        <>
-          <form
-            ref={formRef}
-            className="form"
-            role="form"
-            id="slurm-config-form"
-            autoComplete="off"
-            method="POST"
-            encType="multipart/form-data"
-            onSubmit={handleSubmit}
-            onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
-            action={document.dashboard_url + "/jobs/composer/submit"}
-            style={{ width: '100%' }}
-          >
-            <div className="row">
-              <div className="col-lg-12">
-                <div id="job-content" style={{ maxWidth: '100%' }}>
-                  <Select
-                    key="env_select"
-                    name="runtime"
-                    label="Environments"
-                    options={props.environments}
-                    onChange={props.handleEnvChange}
-                    value={props.environment && props.environment.env ? { value: props.environment.env, label: props.environment.env, src: props.environment.src } : null}
-                    showAddMore={true}
-                    onAddMore={props.handleAddEnv}
-                  />
-                  <Composer
-                    environment={props.environment || {}}
-                    fields={props.fields}
-                    onFileChange={props.handleUploadedFiles}
-                    setError={setError}
-                    ref={props.composerRef}
-                    sync_job_name={props.sync_job_name}
-                    runLocation={props.runLocation}
-                    setRunLocation={props.setRunLocation}
-                    customRunLocation={props.customRunLocation}
-                    setLocationPickedByUser={props.setLocationPickedByUser}
-                    locationPickedByUser={props.locationPickedByUser}
-                  />
-                </div>
-              </div>
-            </div>
+          <ConfigGate onStatusChange={setConfigBlocked} />
 
-            <div className="d-flex align-items-center justify-content-between" style={{ marginBottom: '2rem', flexWrap: 'wrap' }}>
-              <div className="invisible">
-                <button className="btn btn-primary" style={{ visibility: 'hidden' }}>Balance</button>
-              </div>
-              {props.environment && props.environment.env !== "" && (
-                <div>
-                  <input
-                    type="button"
-                    id="job-preview-button"
-                    className="btn btn-primary maroon-button"
-                    value={props.previewButtonText || "Preview"}
-                    onClick={handlePreview}
-                  />
+          {!configBlocked && (
+            <>
+              <form
+                ref={formRef}
+                className="form"
+                role="form"
+                id="slurm-config-form"
+                autoComplete="off"
+                method="POST"
+                encType="multipart/form-data"
+                onSubmit={handleSubmit}
+                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
+                action={document.dashboard_url + "/jobs/composer/submit"}
+                style={{ width: '100%' }}
+              >
+                <div className="row">
+                  <div className="col-lg-12">
+                    <div id="job-content" style={{ maxWidth: '100%' }}>
+                      <Select
+                        key="env_select"
+                        name="runtime"
+                        label="Environments"
+                        options={props.environments}
+                        onChange={props.handleEnvChange}
+                        value={props.environment && props.environment.env ? { value: props.environment.env, label: props.environment.env, src: props.environment.src } : null}
+                        showAddMore={true}
+                        onAddMore={props.handleAddEnv}
+                      />
+                      <Composer
+                        environment={props.environment || {}}
+                        fields={props.fields}
+                        onFileChange={props.handleUploadedFiles}
+                        setError={setError}
+                        ref={props.composerRef}
+                        sync_job_name={props.sync_job_name}
+                        runLocation={props.runLocation}
+                        setRunLocation={props.setRunLocation}
+                        customRunLocation={props.customRunLocation}
+                        setLocationPickedByUser={props.setLocationPickedByUser}
+                        locationPickedByUser={props.locationPickedByUser}
+                      />
+                    </div>
+                  </div>
                 </div>
-              )}
-              <div>
-                <button className="btn btn-primary maroon-button" onClick={(e) => {
-                  e.preventDefault();
-                  setShowHistory(!showHistory);
-                }}>
-                  {showHistory ? 'Hide History' : 'Show History'}
-                </button>
-              </div>
-            </div>
 
-          </form>          <div style={{ width: '100%', maxWidth: '100%', overflowX: 'auto' }}>
-            <SubmissionHistory isExpanded={showHistory} handleRerun={props.handleRerun} handleForm={props.handleForm} />
-          </div>
-          </>
+                <div className="d-flex align-items-center justify-content-between" style={{ marginBottom: '2rem', flexWrap: 'wrap' }}>
+                  <div className="invisible">
+                    <button className="btn btn-primary" style={{ visibility: 'hidden' }}>Balance</button>
+                  </div>
+                  {props.environment && props.environment.env !== "" && (
+                    <div>
+                      <input
+                        type="button"
+                        id="job-preview-button"
+                        className="btn btn-primary maroon-button"
+                        value={props.previewButtonText || "Preview"}
+                        onClick={handlePreview}
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <button className="btn btn-primary maroon-button" onClick={(e) => {
+                      e.preventDefault();
+                      setShowHistory(!showHistory);
+                    }}>
+                      {showHistory ? 'Hide History' : 'Show History'}
+                    </button>
+                  </div>
+                </div>
+
+              </form>          <div style={{ width: '100%', maxWidth: '100%', overflowX: 'auto' }}>
+                <SubmissionHistory isExpanded={showHistory} handleRerun={props.handleRerun} handleForm={props.handleForm} />
+              </div>
+            </>
           )}
         </div>
-        
+
         <div className="card-footer">
           <small className="text-muted">
             Cautions: Job files will overwrite existing files with the same name. The same principle applies for your executable scripts.

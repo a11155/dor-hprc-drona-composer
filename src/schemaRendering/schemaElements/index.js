@@ -21,6 +21,8 @@ import JobNameLocation from "./JobNameLocation";
 import DynamicRadioGroup from "./DynamicRadioGroup";
 import CheckboxGroup from "./CheckboxGroup";
 import DynamicCheckboxGroup from "./DynamicCheckboxGroup";
+import DynamicViewer from "./DynamicViewer";
+import Container from "./Container";
 
 export {
 	Text,
@@ -46,7 +48,9 @@ export {
 	JobNameLocation,
 	DynamicRadioGroup,
 	CheckboxGroup,
-	DynamicCheckboxGroup
+	DynamicCheckboxGroup,
+	Container,
+	DynamicViewer
 }
 
 export const componentsMap = {
@@ -71,9 +75,12 @@ export const componentsMap = {
 	jobNameLocation: JobNameLocation,
 	dynamicRadioGroup: DynamicRadioGroup,
 	checkboxGroup: CheckboxGroup,
-	dynamicCheckboxGroup: DynamicCheckboxGroup
+	dynamicCheckboxGroup: DynamicCheckboxGroup,
+	dynamicViewer: DynamicViewer,
+	container: Container,
+	hidden: Hidden
 
 };
 
-export const Containers = ["rowContainer", "collapsibleRowContainer", "collapsibleColContainer", "dragDropContainer", "jobNameLocation"];
+export const Containers = ["rowContainer", "container", "collapsibleRowContainer", "collapsibleColContainer", "dragDropContainer", "jobNameLocation"];
 
