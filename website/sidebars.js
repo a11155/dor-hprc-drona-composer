@@ -14,6 +14,14 @@ const sidebars = {
   tutorialSidebar: [
     {
       type: 'category',
+      label: 'User Guide',
+      items: [
+        'user-guide/using-drona',
+        'user-guide/primers',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Overview',
       items: [
         'overview/intro',
@@ -39,9 +47,11 @@ const sidebars = {
         'environments/map',
         'environments/user-workflows',
         'environments/publishing',
-	'environments/retriever-scripts'
+	'environments/retriever-scripts',
+	'environments/database'
       ],
     },
+    'citations',
   ],
 };
 
