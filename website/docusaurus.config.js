@@ -37,7 +37,16 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
     ],
   ],
 
-  themes: ['@docusaurus/theme-mermaid', '@docusaurus/theme-live-codeblock'],
+  themes: [
+    '@docusaurus/theme-mermaid',
+    '@docusaurus/theme-live-codeblock',
+    [
+      '@easyops-cn/docusaurus-search-local',
+      {
+        hashed: true,
+      },
+    ],
+  ],
 
   markdown: {
     mermaid: true,
@@ -59,21 +68,6 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
             docId: 'overview/intro',
             position: 'left',
             label: 'Documentation',
-          },
-          {
-            type: 'dropdown',
-            label: 'Components',
-            position: 'left',
-            items: [
-              {
-                label: 'Frontend',
-                to: '/docs/frontend/overview',
-              },
-              {
-                label: 'Backend',
-                to: '/docs/backend/api-routes',
-              },
-            ],
           },
           {
             href: 'https://hprc.tamu.edu',
