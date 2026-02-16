@@ -82,7 +82,6 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
         ],
       },
       footer: {
-        style: 'dark',
         links: [
           {
             title: 'Documentation',
@@ -138,10 +137,13 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
         ],
         copyright: `Copyright © ${new Date().getFullYear()} Texas A&M University.`,
       },
-      // Disable dark mode toggle button
       colorMode: {
-        disableSwitch: true,
-      },
+        defaultMode: 'light',
+        disableSwitch: false,
+     },
+     mermaid: {
+        theme: { light: 'neutral', dark: 'dark' }, 
+     },
       prism: {
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,

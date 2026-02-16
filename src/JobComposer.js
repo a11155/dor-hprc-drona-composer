@@ -128,17 +128,13 @@ function JobComposer({
 
       // For new jobs, include drona_job_id from preview if available
       formData.set("drona_job_id", dronaJobId);
-
-      const name = formData.get("name");
-      if (!name) {
-        if (dronaJobId) formData.set("name", dronaJobId);
-      }
-
       const location = formData.get("location");
-      // console.log("LOCATION1: ", location)
-      if (!location) {
+      console.log("HERE IS THE Location: ", location);
+
+      if (location == null) {
         if (props.runLocation) formData.set("location", props.runLocation);
-        // console.log("LOCATION2: ", props.runLocation)
+        console.log("HERE IS THE NEW Location: ", formData.get("location"));
+
       }
 
       return formData;
