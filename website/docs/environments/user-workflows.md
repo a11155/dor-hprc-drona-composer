@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # User Workflows
 
-User workflows are custom Drona Workflows that enable researchers to create, customize, and deploy their own computational workflows within their personal workspace. These workflows provide complete isolation from system-wide workflows while maintaining full functionality and integration with the Drona Composer platform.
+User workflows are custom Drona Workflows that enable researchers to create, customize, and deploy their own computational workflows within their personal workspace. These workflows provide complete isolation from system-wide workflows while maintaining full functionality and integration with the Drona Workflow Engine platform.
 
 *[Image placeholder: User workflows appearing with blue highlighting in the workflow selection interface]*
 
