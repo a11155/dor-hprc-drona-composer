@@ -7,7 +7,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
   title: 'Drona Workflow Engine',
   tagline: 'High Performance Computing Workflow Composer Documentation',
   url: 'https://tamu-edu.github.io',
-  baseUrl: '/drona-docs',
+  baseUrl: '/a11155/drona-docs',
   onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/hprc_tungsten.png',
