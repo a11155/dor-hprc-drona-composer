@@ -85,17 +85,17 @@ const Composer = forwardRef((props, ref) => {
     }
   }, [props.fields, props.setError]);
 
-  useEffect(() => {
-    console.log("locationPickedByUser changed ->", props.locationPickedByUser);
-  }, [props.locationPickedByUser]);
+  // useEffect(() => {
+  //   console.log("locationPickedByUser changed ->", props.locationPickedByUser);
+  // }, [props.locationPickedByUser]);
 
 
   // Handle value changes
-  const handleValueChange = (fieldName, value) => {
+  const handleValueChange = (fieldName, value, { silent } = {}) => {
 
     // If user choose the location themselves, mark as user-picked
     // console.log("Change location:" + fieldName + " values: " + value);
-    if (fieldName === "location") {
+    if (fieldName === "location" && !silent) {
       props.setLocationPickedByUser?.(true);
     }
 
@@ -234,7 +234,8 @@ const Composer = forwardRef((props, ref) => {
           customRunLocation: props.customRunLocation,
           setBaseRunLocation: props.setBaseRunLocation,
           setLocationPickedByUser: props.setLocationPickedByUser,
-          // environment: props.environment,
+          environment: props.environment,
+          setFieldValue: handleValueChange,
         }}
       />
     </FormValuesContext.Provider>
