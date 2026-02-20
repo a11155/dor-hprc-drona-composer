@@ -16,16 +16,17 @@ class EnvironmentRepoManager:
     def __init__(self, repo_url: str, repo_dir: str):
         self.repo_url = repo_url
         self.repo_dir = repo_dir
-
         self.git_path = app.config.get('git_path', 'git')
 
     def ensure_metadata_repo(self):
         """
-        Ensures we have a local repo with just metadata.json
+        Ensures we have a local repo with just environments/metadata.json
         """
-        if not os.path.exists(os.path.join(self.repo_dir, "metadata.json")):
+        metadata_path = os.path.join(self.repo_dir, "environments", "metadata.json")
+        
+        if not os.path.exists(metadata_path):
             subprocess.run([self.git_path, 'clone', '--depth=1', '--no-checkout', self.repo_url, self.repo_dir])
-            subprocess.run([self.git_path, 'sparse-checkout', 'set', "metadata.json"], cwd=self.repo_dir)
+            subprocess.run([self.git_path, 'sparse-checkout', 'set', "environments/metadata.json"], cwd=self.repo_dir)
             subprocess.run([self.git_path, 'checkout', 'main'], cwd=self.repo_dir)
         else:
             subprocess.run([self.git_path, 'pull', 'origin', 'main'], cwd=self.repo_dir)
@@ -36,7 +37,7 @@ class EnvironmentRepoManager:
         Optionally filters by cluster name
         """
         self.ensure_metadata_repo()
-        metadata_path = os.path.join(self.repo_dir, "metadata.json")
+        metadata_path = os.path.join(self.repo_dir, "environments", "metadata.json")
         with open(metadata_path) as f:
             metadata = json.load(f)
             return self._transform_metadata(metadata, cluster_name)
@@ -57,6 +58,7 @@ class EnvironmentRepoManager:
             
             env_info = {
                 "env": env_name,
+                "path": env_data.get("path", f"environments/{env_name}"),
                 "description": env_data.get("description", "No description available"),
                 "src": eres["path"],
                 "category": env_data.get("category", "Uncategorized"),
@@ -69,12 +71,27 @@ class EnvironmentRepoManager:
             transformed.append(env_info)
         return transformed
 
+    def get_environment_path(self, env_name: str) -> str:
+        """
+        Looks up the repo path for an environment from metadata.json.
+        Falls back to environments/ if not found in metadata.
+        """
+        self.ensure_metadata_repo()
+        metadata_path = os.path.join(self.repo_dir, "environments", "metadata.json")
+        
+        with open(metadata_path) as f:
+            metadata = json.load(f)
+        
+        env_data = metadata.get(env_name)
+        if env_data is None:
+            raise FileNotFoundError(f"Environment '{env_name}' not found in metadata")
+        
+        return env_data.get("path", f"environments/{env_name}")
 
     def copy_environment_to_user(self, env_name: str, user_envs_path: str):
         """
-        Copies the environment directly to user's directory using a temporary clone
+        Copies the environment directly to user's directory using a temporary clone.
         """
-
         if not env_name or not env_name.strip():
             raise ValueError("Environment name cannot be empty")
         if not user_envs_path or not user_envs_path.strip():
@@ -82,7 +99,8 @@ class EnvironmentRepoManager:
 
         os.makedirs(user_envs_path, exist_ok=True)
 
-        # Create a temporary directory for the cloned environment
+        repo_path = self.get_environment_path(env_name)
+
         with tempfile.TemporaryDirectory() as temp_dir:
             try:
                 subprocess.run([
@@ -91,20 +109,21 @@ class EnvironmentRepoManager:
                 ], check=True, stdout=PIPE, stderr=PIPE, universal_newlines=True)
 
                 subprocess.run([
-                    self.git_path, 'sparse-checkout', 'set', env_name
+                    self.git_path, 'sparse-checkout', 'set', repo_path
                 ], cwd=temp_dir, check=True, stdout=PIPE, stderr=PIPE, universal_newlines=True)
 
                 subprocess.run([
                     self.git_path, 'checkout', 'main'
                 ], cwd=temp_dir, check=True, stdout=PIPE, stderr=PIPE, universal_newlines=True)
 
-                src_env_path = os.path.join(temp_dir, env_name)
+                src_env_path = os.path.join(temp_dir, repo_path)
                 if not os.path.exists(src_env_path):
-                    raise FileNotFoundError(f"Environment '{env_name}' not found in repository")
+                    raise FileNotFoundError(f"Environment '{env_name}' not found at path '{repo_path}' in repository")
 
                 dst_env_path = os.path.join(user_envs_path, env_name)
                 if os.path.exists(dst_env_path):
                     shutil.rmtree(dst_env_path)
+
                 shutil.copytree(src_env_path, dst_env_path)
 
             except subprocess.CalledProcessError as e:
