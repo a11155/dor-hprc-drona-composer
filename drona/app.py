@@ -1,12 +1,15 @@
 from flask import Flask, render_template, redirect, jsonify, current_app
 from flask_cors import CORS
-from views.job_composer import job_composer
-from views import socket_handler
-from views.utils import get_drona_dir, get_drona_root
+from .views.job_composer import job_composer
+from .views import socket_handler
+from .views.utils import get_drona_dir, get_drona_root
 import yaml
 import os
 
-app = Flask(__name__)
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+app = Flask(__name__,
+            template_folder=os.path.join(_ROOT, 'templates'),
+            static_folder=os.path.join(_ROOT, 'static'))
 
 def detect_env():
     path = os.getcwd()

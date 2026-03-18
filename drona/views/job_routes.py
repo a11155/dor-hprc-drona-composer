@@ -7,7 +7,7 @@ import uuid
 from .logger import Logger
 from .history_manager import JobHistoryManager
 from .utils import create_folder_if_not_exist, get_drona_dir
-from machine_driver_scripts.engine import Engine
+from ..machine_driver_scripts.engine import Engine
 from .file_utils import save_file
 
 logger = Logger()

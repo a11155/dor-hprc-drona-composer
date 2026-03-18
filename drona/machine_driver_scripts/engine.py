@@ -5,7 +5,7 @@ import ast
 import shutil
 import os
 import sys
-from machine_driver_scripts.utils import *
+from .utils import *
 import importlib.util
 
 def load_module_with_imports(module_name, file_path):
@@ -136,7 +136,7 @@ def process_function(value, environment, env_dir):
         
     # Load modules using the new helper function
     try:
-        global_utils_path = os.path.join("machine_driver_scripts", "utils.py")
+        global_utils_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "utils.py")
         global_module = load_module_with_imports("global_utils", global_utils_path)
 
         local_module = None

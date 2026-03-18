@@ -9,7 +9,7 @@ import signal
 import sys
 from datetime import datetime
 from flask import request, jsonify, Blueprint
-from views.utils import get_drona_dir, get_runtime_dir
+from .utils import get_drona_dir, get_runtime_dir
 
 
 # Directory for job communication

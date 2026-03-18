@@ -1,4 +1,4 @@
-from app import app
+from drona.app import app
 
 application = app
 
